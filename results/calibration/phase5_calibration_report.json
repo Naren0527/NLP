@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-11-02T12:25:51.540147+00:00",
+  "input_file": "results\\test_predictions.jsonl",
+  "total_records_ingested": 12,
+  "random_seed": 20260330,
+  "pipeline_status": "COMPLETED",
+  "calibration_results": {}
+}

@@ -1,0 +1,11 @@
+{
+  "stage": "STAGE_2_JUDGE_EVALUATION",
+  "completed_comparisons": 750,
+  "total_comparisons": 750,
+  "last_comparison_id": "comp_9bdabf698bda",
+  "question_id": "Q_SCI_MH_13",
+  "condition": "hi_trans_en",
+  "elapsed_seconds": 43.62,
+  "vram_allocated_mb": 3088.0,
+  "timestamp": "2026-11-03T03:18:42.411125+00:00"
+}

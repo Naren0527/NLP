@@ -1,0 +1,37 @@
+# Model Engine Configuration
+# Tested and verified on NVIDIA RTX 4050 Laptop GPU (6GB VRAM)
+model:
+  model_id: "google/gemma-3-4b-it"
+  device_map: "auto"
+  quantization:
+    load_in_4bit: true
+    bnb_4bit_quant_type: "nf4"
+    bnb_4bit_compute_dtype: "bfloat16"
+    bnb_4bit_use_double_quant: true
+
+generation:
+  max_new_tokens: 128
+  do_sample: false
+  temperature: null
+  top_p: null
+  return_dict_in_generate: true
+  output_scores: true
+  output_logits: true
+
+confidence_generation:
+  max_new_tokens: 10
+  do_sample: false
+  temperature: null
+  top_p: null
+  return_dict_in_generate: true
+  output_scores: false
+  output_logits: false
+
+comparison_generation:
+  max_new_tokens: 1024
+  do_sample: false
+  temperature: null
+  top_p: null
+  return_dict_in_generate: true
+  output_scores: false
+  output_logits: false

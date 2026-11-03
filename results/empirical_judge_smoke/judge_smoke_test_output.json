@@ -1,0 +1,31 @@
+{
+  "task_type": "JUDGE_INFERENCE",
+  "model_id": "google/gemma-3-4b-it",
+  "model_revision": "093f9f388b31de276ce2de164bdc2081324b9767",
+  "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "peak_vram_mb": 3595.59,
+  "duration_seconds": 170.82,
+  "comparison_result": {
+    "comparison_id": "comp_4fbf0388f437",
+    "raw_judge_classification": "CONSISTENT",
+    "final_arbiter_classification": "CONSISTENT",
+    "classification_decision_source": "JUDGE_ACCEPTED",
+    "overall_rationale": "Both answers state that Bengaluru is the capital city of Karnataka. The transliteration of the name 'Bengaluru' in English is a minor difference in phrasing, not a factual contradiction. There are no other conflicting claims.",
+    "evidence_validation_status": "ALL_EVIDENCE_GROUNDED",
+    "raw_judge_response": "```json\n{\n  \"classification\": \"CONSISTENT\",\n  \"overall_rationale\": \"Both answers state that Bengaluru is the capital city of Karnataka. The transliteration of the name 'Bengaluru' in English is a minor difference in phrasing, not a factual contradiction. There are no other conflicting claims.\",\n  \"claims\": [\n    {\n      \"claim_id\": \"CLM_01\",\n      \"relationship\": \"MATCHED\",\n      \"original_evidence_span\": \" ಕರ್ನಾಟಕದ ರಾಜಧಾನಿ ಬೆಂಗಳೂರು\",\n      \"english_evidence_span\": \"The capital city of Karnataka is Bengaluru.\",\n      \"interpreted_claim\": \"Bengaluru is the capital city of Karnataka.\",\n      \"explanation\": \"Both answers directly state that Bengaluru is the capital of Karnataka. The Kannada phrase and the English phrase represent the same factual claim.\"\n    }\n  ]\n}\n```",
+    "claims": [
+      {
+        "claim_id": "CLM_01",
+        "relationship": "MATCHED",
+        "original_evidence_span": " ಕರ್ನಾಟಕದ ರಾಜಧಾನಿ ಬೆಂಗಳೂರು",
+        "english_evidence_span": "The capital city of Karnataka is Bengaluru.",
+        "interpreted_claim": "Bengaluru is the capital city of Karnataka.",
+        "explanation": "Both answers directly state that Bengaluru is the capital of Karnataka. The Kannada phrase and the English phrase represent the same factual claim.",
+        "is_original_evidence_valid": true,
+        "is_english_evidence_valid": true,
+        "validation_error": null,
+        "external_verification_status": "AWAITING_EXTERNAL_VERIFICATION"
+      }
+    ]
+  }
+}

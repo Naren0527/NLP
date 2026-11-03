@@ -1,0 +1,19 @@
+{
+  "total_claims": 2145,
+  "target_qc_size": 215,
+  "actual_qc_sampled": 215,
+  "qc_sampled_by_condition": {
+    "bn": 20,
+    "bn_trans_en": 20,
+    "en": 20,
+    "en_trans_hi": 20,
+    "en_trans_ta": 20,
+    "hi": 20,
+    "hi_trans_en": 19,
+    "ta": 19,
+    "ta_trans_en": 19,
+    "te": 19,
+    "te_trans_en": 19
+  },
+  "seed": 20260330
+}

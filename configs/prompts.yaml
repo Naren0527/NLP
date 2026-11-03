@@ -1,0 +1,149 @@
+# Versioned Prompts Configuration
+# Blueprint Specification (Section 12) & Phase 3 Confidence Elicitation
+
+prompt_versions:
+  # Generation Prompts
+  original_language:
+    version: "v1.0_original"
+    template: >-
+      You are answering a user question. The user's language is {LANGUAGE}. Answer only in {LANGUAGE}. Preserve names, numbers, dates and negation. Do not add unsupported facts. If uncertain, say so. Question: {QUESTION}
+
+  english:
+    version: "v1.0_english"
+    template: >-
+      Answer the same question in English, preserving the meaning of the original question. Be concise and factual. Do not assume the answer in another language is correct. If uncertain, state uncertainty. Original question: {QUESTION}
+
+  # Localized Verbalized Confidence Prompts (Strict NN% Percentage Contract)
+  confidence_en:
+    version: "v1.0_confidence_en"
+    template: >-
+      You are evaluating the factual correctness of an answer.
+      Question: {QUESTION}
+      Answer: {ANSWER}
+
+      Estimate the likelihood that the answer is factually correct.
+      Respond with exactly one percentage between 0% and 100% in the format NN% (for example: 85%).
+      Do not write any words, explanations, or numbers without the % symbol.
+      Confidence:
+
+  confidence_kn:
+    version: "v1.0_confidence_kn"
+    template: >-
+      ನೀವು ಉತ್ತರದ ವಾಸ್ತವಿಕ ನಿಖರತೆಯನ್ನು ಮೌಲ್ಯಮಾಪನ ಮಾಡುತ್ತಿದ್ದೀರಿ.
+      ಪ್ರಶ್ನೆ: {QUESTION}
+      ಉತ್ತರ: {ANSWER}
+
+      ಈ ಉತ್ತರವು ವಾಸ್ತವಿಕವಾಗಿ ಸರಿಯಾಗಿರುವ ಸಾಧ್ಯತೆಯನ್ನು ಅಂದಾಜಿಸಿ.
+      0% ಮತ್ತು 100% ನಡುವಿನ ಕೇವಲ ಒಂದು ಶೇಕಡಾವಾರು ಮೌಲ್ಯವನ್ನು NN% ಸ್ವರೂಪದಲ್ಲಿ ಮಾತ್ರ ನೀಡಿ (ಉದಾಹರಣೆಗೆ: 85%).
+      ಯಾವುದೇ ವಿವರಣೆ, ಪದಗಳು ಅಥವಾ % ಚಿಹ್ನೆ ಇಲ್ಲದ ಸಂಖ್ಯೆಗಳನ್ನು ಬರೆಯಬೇಡಿ.
+      ವಿಶ್ವಾಸಾರ್ಹತೆ:
+
+  confidence_hi:
+    version: "v1.0_confidence_hi"
+    template: >-
+      आप किसी उत्तर की तथ्यात्मक सटीकता का मूल्यांकन कर रहे हैं।
+      प्रश्न: {QUESTION}
+      उत्तर: {ANSWER}
+
+      अनुमान लगाएं कि यह उत्तर तथ्यात्मक रूप से सही होने की कितनी संभावना है।
+      0% से 100% के बीच ठीक एक प्रतिशत मान केवल NN% प्रारूप में दें (उदाहरण के लिए: 85%)।
+      कोई अन्य शब्द, व्याख्या या % प्रतीक के बिना संख्या न लिखें।
+      विश्वास:
+
+  confidence_ta:
+    version: "v1.0_confidence_ta"
+    template: >-
+      நீங்கள் ஒரு பதிலின் உண்மைத் துல்லியத்தை மதிப்பீடு செய்கிறீர்கள்.
+      கேள்வி: {QUESTION}
+      பதில்: {ANSWER}
+
+      இந்த பதில் உண்மையாக இருப்பதற்கான சாத்தியக்கூறை மதிப்பிடுங்கள்.
+      0% முதல் 100% வரை ஒரே ஒரு சதவீத மதிப்பை மட்டும் NN% வடிவத்தில் குறிப்பிடவும் (எடுத்துக்காட்டாக: 85%)।
+      எந்தவொரு விளக்கம், சொற்கள் அல்லது % குறியீடு இல்லாத எண்களை எழுத வேண்டாம்.
+      நம்பிக்கை:
+
+  confidence_te:
+    version: "v1.0_confidence_te"
+    template: >-
+      మీరు ఒక సమాధానం యొక్క వాస్తవ ఖచ్చితత్వాన్ని అంచనా వేస్తున్నారు.
+      ప్రశ్న: {QUESTION}
+      సమాధానం: {ANSWER}
+
+      ఈ సమాధానం వాస్తవంగా సరైనది అయ్యే సంభావ್ಯతను అంచనా వేయండి.
+      0% మరియు 100% మధ్య ఖచ్చితంగా ఒకే ఒక శాతాన్ని NN% రూపంలో మాత్రమే ఇవ్వండి (ఉదాహరణకు: 85%).
+      ఎలాంటి వివరణ, పదాలు లేదా % గుర్తు లేని సంఖ్యలను రాయవద్దు.
+      విశ్వాసం:
+
+  confidence_ml:
+    version: "v1.0_confidence_ml"
+    template: >-
+      നിങ്ങൾ നൽകിയ ഉത്തരത്തിന്റെ വസ്തുതാപരമായ കൃത്യത വിലയിരുത്തുകയാണ്.
+      ചോദ്യം: {QUESTION}
+      ഉത്തരം: {ANSWER}
+
+      ഈ ഉത്തരം വസ്തുതാപരമായി ശരിയാകാനുള്ള സാധ്യത കണക്കാക്കുക.
+      0% നും 100% നും ഇടയിലുള്ള ഒരൊറ്റ ശതമാനം മാത്രം NN% ഫോർമാറ്റിൽ നൽകുക (ഉദാഹരണത്തിന്: 85%).
+      വിശദീകരണങ്ങളോ വാക്കുകളോ % ചിഹ്നമില്ലാത്ത സംഖ്യകളോ നൽകരുത്.
+      ആത്മവിശ്വാസം:
+
+  # Phase 4: Symmetrical Factual Consistency Judge Prompt
+  comparison_judge:
+    version: "v1.0_comparison_judge"
+    template: >-
+      You are an expert factual consistency auditor.
+      Your task is to compare two answers generated independently to the same question and evaluate their factual consistency.
+      Neither answer is assumed to be correct or ground truth. English is NOT an authority over the other language.
+
+      Question:
+      {QUESTION}
+
+      Answer A (in {LANGUAGE}):
+      {ORIGINAL_ANSWER}
+
+      Answer B (in English):
+      {ENGLISH_ANSWER}
+
+      Instructions:
+      1. Symmetrical Factual Comparison:
+         - Determine whether Answer A and Answer B communicate equivalent factual claims.
+         - Do NOT evaluate whether the claims are objectively true in the real world. Evaluate ONLY whether Answer A and Answer B agree with each other.
+         - Distinguish harmless differences in phrasing, word choice, transliterations (e.g., Bengaluru vs. Bangalore), or level of detail from genuine factual contradictions.
+         - Additional compatible details provided in one answer do NOT make the answers inconsistent.
+
+      2. Evidence Grounding Rule:
+         - Every claim MUST cite the exact verbatim substring from Answer A and/or Answer B as evidence.
+         - original_evidence_span MUST be copied verbatim in the exact original script characters from Answer A (e.g., if Answer A is in Kannada, Tamil, Hindi, etc., the span MUST be in that script). NEVER translate original_evidence_span into English.
+         - Do NOT paraphrase, translate, or invent quotes. If an evidence span is not an exact substring, the audit will fail.
+         - Do NOT omit supplementary or unilateral factual assertions! Every additional fact, year, number, or claim stated in Answer A that is not mentioned in Answer B MUST be recorded as an ORIGINAL_ONLY claim (with english_evidence_span: null).
+         - Every additional claim stated in Answer B that is not mentioned in Answer A MUST be recorded as an ENGLISH_ONLY claim (with original_evidence_span: null).
+         - Supplementary details (ORIGINAL_ONLY or ENGLISH_ONLY) are preserved for external verification and do NOT make answers inconsistent unless they directly contradict.
+         - For MATCHED or CONTRADICTORY claims, both original_evidence_span and english_evidence_span are strictly required.
+
+      3. Relationship Categories:
+         - MATCHED: Both answers assert equivalent factual meaning for this claim.
+         - CONTRADICTORY: The answers make mutually incompatible claims on facts, numbers, dates, locations, entities, or polarity.
+         - ORIGINAL_ONLY: Stated only in Answer A, but does not contradict Answer B.
+         - ENGLISH_ONLY: Stated only in Answer B, but does not contradict Answer A.
+         - AMBIGUOUS: Phrasing is too vague or incomplete to determine whether it agrees or conflicts.
+
+      4. Select exactly one primary classification:
+         - CONSISTENT: All core factual claims agree. Additional details, if present, are compatible. No contradictions.
+         - INCONSISTENT: There is at least one direct factual contradiction between Answer A and Answer B.
+         - UNCERTAIN: Core information is missing, ambiguous, or the comparison cannot reliably determine consistency.
+
+      Return your output strictly as a valid JSON object matching this schema and no other text:
+      {{
+        "classification": "CONSISTENT" | "INCONSISTENT" | "UNCERTAIN",
+        "overall_rationale": "Clear, objective summary of why the answers are consistent, inconsistent, or uncertain",
+        "claims": [
+          {{
+            "claim_id": "CLM_01",
+            "relationship": "MATCHED" | "CONTRADICTORY" | "ORIGINAL_ONLY" | "ENGLISH_ONLY" | "AMBIGUOUS",
+            "original_evidence_span": "Exact substring from Answer A or null",
+            "english_evidence_span": "Exact substring from Answer B or null",
+            "interpreted_claim": "The factual proposition conveyed",
+            "explanation": "Specific rationale for this claim relationship"
+          }}
+        ]
+      }}
+      JSON:

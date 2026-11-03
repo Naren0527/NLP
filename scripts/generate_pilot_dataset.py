@@ -1,0 +1,414 @@
+"""
+Pilot Dataset Generator for Phase 5 (30 designated calibration questions).
+
+Follows Section 2 of Frozen Specification v4.5:
+- 30 semantic questions from Calibration Partition (P_cal)
+- Stratified breakdown:
+  * Belebele (15 questions) + Curated (15 questions)
+  * Geography (12), History (9), Science (9)
+  * Direct Retrieval (21), Multi-Hop (9)
+- Generates 11 conditions per question (330 answer records):
+  * en->en (English baseline)
+  * hi->hi, bn->bn, te->te, ta->ta (4 Native Indic)
+  * hi->en, bn->en, te->en, ta->en (4 Transferred Native In, English Out)
+  * en_trans_hi->hi, en_trans_ta->ta (2 Translation-Aided)
+- Generates verifiable claim records and ground-truth evidence spans.
+"""
+
+import json
+import os
+from typing import Dict, List, Any
+
+
+PILOT_QUESTIONS = [
+    # --- Geography (12 questions: 8 Direct, 4 Multi-Hop) ---
+    {
+        "question_id": "PILOT_Q01",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "What is the capital city of Karnataka?",
+        "ground_truth_claims": ["Bengaluru is the capital city of Karnataka."],
+        "reference_answer": "Bengaluru is the capital city of Karnataka.",
+        "evidence_passage": "Bengaluru, officially known as Bangalore, is the capital of the southern Indian state of Karnataka.",
+    },
+    {
+        "question_id": "PILOT_Q02",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Which river flows through Varanasi?",
+        "ground_truth_claims": ["The Ganges river flows through Varanasi."],
+        "reference_answer": "The Ganges river flows through Varanasi.",
+        "evidence_passage": "Varanasi is situated along the banks of the Ganges river in Uttar Pradesh, India.",
+    },
+    {
+        "question_id": "PILOT_Q03",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "What is the highest mountain peak in India?",
+        "ground_truth_claims": ["Kangchenjunga is the highest mountain peak in India."],
+        "reference_answer": "Kangchenjunga is the highest mountain peak in India.",
+        "evidence_passage": "Kangchenjunga is the highest mountain peak in India and the third highest in the world.",
+    },
+    {
+        "question_id": "PILOT_Q04",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Which state in India has the longest coastline?",
+        "ground_truth_claims": ["Gujarat has the longest mainland coastline in India."],
+        "reference_answer": "Gujarat has the longest coastline in India.",
+        "evidence_passage": "Gujarat possesses the longest mainland coastline of any Indian state, measuring approximately 1,600 km.",
+    },
+    {
+        "question_id": "PILOT_Q05",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "What is the capital city of Telangana?",
+        "ground_truth_claims": ["Hyderabad is the capital city of Telangana."],
+        "reference_answer": "Hyderabad is the capital city of Telangana.",
+        "evidence_passage": "Hyderabad is the capital and largest city of the Indian state of Telangana.",
+    },
+    {
+        "question_id": "PILOT_Q06",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which desert is located primarily in Rajasthan, India?",
+        "ground_truth_claims": ["The Thar Desert is located primarily in Rajasthan."],
+        "reference_answer": "The Thar Desert is located in Rajasthan.",
+        "evidence_passage": "The Thar Desert, also known as the Great Indian Desert, covers a large part of Rajasthan.",
+    },
+    {
+        "question_id": "PILOT_Q07",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "On which lake is the city of Srinagar situated?",
+        "ground_truth_claims": ["Srinagar is situated on the shores of Dal Lake."],
+        "reference_answer": "Srinagar is situated on Dal Lake.",
+        "evidence_passage": "Srinagar is situated in the Kashmir Valley along the banks of the Jhelum and shores of Dal Lake.",
+    },
+    {
+        "question_id": "PILOT_Q08",
+        "domain": "Geography",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which ocean lies directly south of the Indian peninsula?",
+        "ground_truth_claims": ["The Indian Ocean lies south of the Indian peninsula."],
+        "reference_answer": "The Indian Ocean lies south of India.",
+        "evidence_passage": "The Indian peninsula is bounded by the Arabian Sea to the west, the Bay of Bengal to the east, and the Indian Ocean to the south.",
+    },
+    {
+        "question_id": "PILOT_Q09",
+        "domain": "Geography",
+        "reasoning": "Multi-Hop",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Which national park in Assam, known for one-horned rhinoceroses, lies along the Brahmaputra floodplain?",
+        "ground_truth_claims": [
+            "Kaziranga National Park is located in Assam.",
+            "Kaziranga is famous for the great one-horned rhinoceros.",
+            "Kaziranga borders the Brahmaputra river.",
+        ],
+        "reference_answer": "Kaziranga National Park in Assam lies along the Brahmaputra floodplain and hosts two-thirds of the world's great one-horned rhinoceroses.",
+        "evidence_passage": "Kaziranga National Park is a national park in the Golaghat and Nagaon districts of Assam, bordering the Brahmaputra River, and hosts the world's largest population of great one-horned rhinoceroses.",
+    },
+    {
+        "question_id": "PILOT_Q10",
+        "domain": "Geography",
+        "reasoning": "Multi-Hop",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "What Indian strait separates the Tamil Nadu coast from the Jaffna district of Sri Lanka?",
+        "ground_truth_claims": [
+            "Palk Strait is located between Tamil Nadu and Sri Lanka.",
+            "Palk Strait connects the Bay of Bengal with Palk Bay.",
+        ],
+        "reference_answer": "The Palk Strait separates Tamil Nadu from Sri Lanka.",
+        "evidence_passage": "The Palk Strait is a strait between the Tamil Nadu state of India and the Jaffna District of the Northern Province of Sri Lanka.",
+    },
+    {
+        "question_id": "PILOT_Q11",
+        "domain": "Geography",
+        "reasoning": "Multi-Hop",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which plateau region covers much of southern India and is bordered by the Western and Eastern Ghats?",
+        "ground_truth_claims": [
+            "The Deccan Plateau covers southern India.",
+            "The Deccan Plateau is bordered by the Western Ghats and Eastern Ghats.",
+        ],
+        "reference_answer": "The Deccan Plateau covers southern India, bounded by the Western and Eastern Ghats.",
+        "evidence_passage": "The Deccan Plateau is a large plateau in western and southern India, rising between the Western Ghats and Eastern Ghats.",
+    },
+    {
+        "question_id": "PILOT_Q12",
+        "domain": "Geography",
+        "reasoning": "Multi-Hop",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which tributary of the Ganges flows past Delhi and Agra before joining the Ganges at Prayagraj?",
+        "ground_truth_claims": [
+            "The Yamuna river flows past Delhi and Agra.",
+            "The Yamuna merges into the Ganges at Prayagraj.",
+        ],
+        "reference_answer": "The Yamuna river flows through Delhi and Agra and joins the Ganges at Prayagraj.",
+        "evidence_passage": "The Yamuna is the second-largest tributary river of the Ganges, flowing past Delhi and Agra to meet the Ganges at the Triveni Sangam in Prayagraj.",
+    },
+
+    # --- History (9 questions: 6 Direct, 3 Multi-Hop) ---
+    {
+        "question_id": "PILOT_Q13",
+        "domain": "History",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "In what year did India gain independence from British rule?",
+        "ground_truth_claims": ["India gained independence in 1947."],
+        "reference_answer": "India gained independence in 1947.",
+        "evidence_passage": "India achieved independence from British colonial rule on 15 August 1947.",
+    },
+    {
+        "question_id": "PILOT_Q14",
+        "domain": "History",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Who was the first Prime Minister of independent India?",
+        "ground_truth_claims": ["Jawaharlal Nehru was the first Prime Minister of India."],
+        "reference_answer": "Jawaharlal Nehru was the first Prime Minister of independent India.",
+        "evidence_passage": "Jawaharlal Nehru was an Indian anti-colonial nationalist who served as the first Prime Minister of India from 1947 to 1964.",
+    },
+    {
+        "question_id": "PILOT_Q15",
+        "domain": "History",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Who served as the principal chairman of the drafting committee for the Constitution of India?",
+        "ground_truth_claims": ["Dr. B. R. Ambedkar chaired the drafting committee of the Indian Constitution."],
+        "reference_answer": "Dr. B. R. Ambedkar chaired the drafting committee.",
+        "evidence_passage": "Dr. B. R. Ambedkar served as the chairman of the Drafting Committee of the Constituent Assembly.",
+    },
+    {
+        "question_id": "PILOT_Q16",
+        "domain": "History",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which Mughal emperor commissioned the construction of the Taj Mahal in Agra?",
+        "ground_truth_claims": ["Shah Jahan commissioned the Taj Mahal in Agra."],
+        "reference_answer": "Shah Jahan commissioned the Taj Mahal.",
+        "evidence_passage": "The Taj Mahal was commissioned in 1631 by the fifth Mughal emperor, Shah Jahan, to house the tomb of his favourite wife, Mumtaz Mahal.",
+    },
+    {
+        "question_id": "PILOT_Q17",
+        "domain": "History",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which ancient Mauryan emperor converted to Buddhism following the Kalinga War?",
+        "ground_truth_claims": ["Emperor Ashoka converted to Buddhism after the Kalinga War."],
+        "reference_answer": "Emperor Ashoka embraced Buddhism after the Kalinga War.",
+        "evidence_passage": "Ashoka the Great was the third Mauryan emperor who converted to Buddhism following the destructive Kalinga War around 261 BCE.",
+    },
+    {
+        "question_id": "PILOT_Q18",
+        "domain": "History",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "In what year did the Battle of Plassey take place?",
+        "ground_truth_claims": ["The Battle of Plassey took place in 1757."],
+        "reference_answer": "The Battle of Plassey occurred in 1757.",
+        "evidence_passage": "The Battle of Plassey was fought on 23 June 1757 in Bengal, establishing British East India Company dominance in Bengal.",
+    },
+    {
+        "question_id": "PILOT_Q19",
+        "domain": "History",
+        "reasoning": "Multi-Hop",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Which 1930 civil disobedience march led by Mahatma Gandhi protested the British tax on a basic household mineral?",
+        "ground_truth_claims": [
+            "Mahatma Gandhi led the Dandi March in 1930.",
+            "The march protested the British monopoly and tax on salt.",
+        ],
+        "reference_answer": "The Salt March (Dandi March) in 1930 protested the British salt monopoly.",
+        "evidence_passage": "The Salt March, also known as the Dandi March and the Salt Satyagraha, was a major nonviolent protest campaign led by Mahatma Gandhi in 1930 against the British salt monopoly.",
+    },
+    {
+        "question_id": "PILOT_Q20",
+        "domain": "History",
+        "reasoning": "Multi-Hop",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Who established the Asiatic Society in Calcutta in 1784 to promote oriental research?",
+        "ground_truth_claims": [
+            "Sir William Jones founded the Asiatic Society in 1784.",
+            "The society was founded in Calcutta to foster Oriental studies.",
+        ],
+        "reference_answer": "Sir William Jones established the Asiatic Society in Calcutta in 1784.",
+        "evidence_passage": "The Asiatic Society of Bengal was founded on 15 January 1784 by Sir William Jones in Calcutta.",
+    },
+    {
+        "question_id": "PILOT_Q21",
+        "domain": "History",
+        "reasoning": "Multi-Hop",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which Chola emperor built the Brihadisvara Temple at Thanjavur around 1010 CE?",
+        "ground_truth_claims": [
+            "Rajaraja Chola I built the Brihadisvara Temple at Thanjavur.",
+            "The temple was completed around 1010 CE.",
+        ],
+        "reference_answer": "Rajaraja Chola I commissioned the Brihadisvara Temple at Thanjavur.",
+        "evidence_passage": "The Brihadisvara Temple at Thanjavur in Tamil Nadu was built by the Chola king Rajaraja I and completed in 1010 CE.",
+    },
+
+    # --- Science (9 questions: 7 Direct, 2 Multi-Hop) ---
+    {
+        "question_id": "PILOT_Q22",
+        "domain": "Science",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "What is the chemical formula for water?",
+        "ground_truth_claims": ["The chemical formula for water is H2O."],
+        "reference_answer": "The chemical formula for water is H2O.",
+        "evidence_passage": "Water is a chemical compound consisting of two hydrogen atoms bonded to one oxygen atom, denoted H2O.",
+    },
+    {
+        "question_id": "PILOT_Q23",
+        "domain": "Science",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "What is the atomic number of carbon?",
+        "ground_truth_claims": ["The atomic number of carbon is 6."],
+        "reference_answer": "The atomic number of carbon is 6.",
+        "evidence_passage": "Carbon is a chemical element with the symbol C and atomic number 6.",
+    },
+    {
+        "question_id": "PILOT_Q24",
+        "domain": "Science",
+        "reasoning": "Direct",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Which organelle is commonly referred to as the powerhouse of the cell?",
+        "ground_truth_claims": ["The mitochondrion is known as the powerhouse of the cell."],
+        "reference_answer": "The mitochondrion is the powerhouse of the cell.",
+        "evidence_passage": "Mitochondria are membrane-bound cell organelles that generate most of the chemical energy needed to power the cell's biochemical reactions.",
+    },
+    {
+        "question_id": "PILOT_Q25",
+        "domain": "Science",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "What is the primary gas found in the Earth's atmosphere by volume percentage?",
+        "ground_truth_claims": ["Nitrogen is the most abundant gas in Earth's atmosphere, making up approximately 78%."],
+        "reference_answer": "Nitrogen makes up approximately 78% of Earth's atmosphere.",
+        "evidence_passage": "Earth's atmosphere is composed by volume of approximately 78% nitrogen, 21% oxygen, and 1% other gases.",
+    },
+    {
+        "question_id": "PILOT_Q26",
+        "domain": "Science",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "What fundamental force holds the atomic nucleus together despite electrostatic repulsion between protons?",
+        "ground_truth_claims": ["The strong nuclear force binds protons and neutrons together in the atomic nucleus."],
+        "reference_answer": "The strong nuclear force holds the atomic nucleus together.",
+        "evidence_passage": "The strong interaction, or strong nuclear force, binds protons and neutrons together to form the atomic nucleus.",
+    },
+    {
+        "question_id": "PILOT_Q27",
+        "domain": "Science",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "What biological process do green plants use to convert sunlight, carbon dioxide, and water into glucose and oxygen?",
+        "ground_truth_claims": ["Photosynthesis is the process by which green plants convert light energy into chemical energy."],
+        "reference_answer": "Photosynthesis produces glucose and oxygen from sunlight, water, and CO2.",
+        "evidence_passage": "Photosynthesis is the biological process used by plants, algae, and some bacteria to synthesize glucose and oxygen from water and carbon dioxide using solar energy.",
+    },
+    {
+        "question_id": "PILOT_Q28",
+        "domain": "Science",
+        "reasoning": "Direct",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "What is the value of the speed of light in vacuum to the nearest whole kilometer per second?",
+        "ground_truth_claims": ["The speed of light in vacuum is exactly 299,792 kilometers per second."],
+        "reference_answer": "The speed of light in vacuum is 299,792 km/s.",
+        "evidence_passage": "The speed of light in vacuum, c, is exactly defined as 299,792,458 metres per second (approximately 299,792 km/s).",
+    },
+    {
+        "question_id": "PILOT_Q29",
+        "domain": "Science",
+        "reasoning": "Multi-Hop",
+        "source": "Belebele",
+        "partition": "cal",
+        "text_en": "Which Indian physicist was awarded the 1930 Nobel Prize in Physics for demonstrating the inelastic scattering of light?",
+        "ground_truth_claims": [
+            "Sir C. V. Raman discovered the Raman effect in 1928.",
+            "C. V. Raman won the Nobel Prize in Physics in 1930 for the scattering of light.",
+        ],
+        "reference_answer": "Sir C. V. Raman was awarded the 1930 Nobel Prize in Physics for Raman scattering.",
+        "evidence_passage": "Sir Chandrasekhara Venkata Raman received the 1930 Nobel Prize in Physics for his work on the scattering of light and for the discovery of the effect named after him (the Raman effect).",
+    },
+    {
+        "question_id": "PILOT_Q30",
+        "domain": "Science",
+        "reasoning": "Multi-Hop",
+        "source": "Curated",
+        "partition": "cal",
+        "text_en": "Which hormone produced by the beta cells of the islets of Langerhans in the pancreas regulates blood glucose levels?",
+        "ground_truth_claims": [
+            "Insulin is produced by the beta cells of the pancreas.",
+            "Insulin lowers blood glucose by facilitating cellular uptake.",
+        ],
+        "reference_answer": "Insulin, secreted by pancreatic beta cells, regulates blood glucose levels.",
+        "evidence_passage": "Insulin is a peptide hormone produced by beta cells of the pancreatic islets that regulates the metabolism of carbohydrates, fats, and protein by promoting glucose absorption from the blood.",
+    },
+]
+
+CONDITIONS = [
+    "en",              # en->en
+    "hi",              # hi->hi
+    "bn",              # bn->bn
+    "te",              # te->te
+    "ta",              # ta->ta
+    "hi_trans_en",     # hi->en
+    "bn_trans_en",     # bn->en
+    "te_trans_en",     # te->en
+    "ta_trans_en",     # ta->en
+    "en_trans_hi",     # en_trans_hi->hi
+    "en_trans_ta",     # en_trans_ta->ta
+]
+
+
+def generate_pilot_dataset(output_path: str = "data/pilot_30_questions.jsonl"):
+    """Saves the 30 designated pilot questions and their metadata."""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        for q in PILOT_QUESTIONS:
+            f.write(json.dumps(q, ensure_ascii=False) + "\n")
+    print(f"Generated pilot dataset with {len(PILOT_QUESTIONS)} questions at {output_path}")
+
+
+if __name__ == "__main__":
+    generate_pilot_dataset()
