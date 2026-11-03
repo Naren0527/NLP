@@ -1,0 +1,6 @@
+language,language_name,test_sample_size,baseline_accuracy,mitigated_accuracy,accuracy_gain_percentage_points,relative_error_reduction_pct,baseline_ece,mitigated_ece,ece_reduction_pct,baseline_brier_score,mitigated_brier_score
+en,English,45,0.9556,0.8222,-13.34,-300.4,0.044,0.1115,-153.4,0.044,0.1519
+hi,Hindi,45,0.2381,0.8444,60.63,79.58,0.6798,0.4902,27.88,0.6623,0.381
+bn,Bengali,45,0.3556,0.8889,53.33,82.76,0.6049,0.4295,29.0,0.6463,0.3012
+te,Telugu,45,0.25,0.8667,61.67,82.22,0.7025,0.4812,31.5,0.6692,0.3704
+ta,Tamil,45,0.4,0.8444,44.44,74.07,0.5516,0.4654,15.62,0.5791,0.3497

@@ -158,6 +158,36 @@ python -u scripts/run_phase_5_empirical_full_scale.py \
 ```
 Execution supports atomic checkpointing and will automatically resume from the last completed record if interrupted.
 
+### 5. Launch Interactive Multilingual UI
+Launch the comprehensive 7-page interactive research application:
+```bash
+streamlit run app.py
+```
+**Interactive UI Capabilities:**
+- **Page 1 (Research Overview):** Core research questions, pipeline diagrams, executive summaries.
+- **Page 2 (Live Multilingual Demo):** Interactive prompt playground across English, Hindi, Bengali, Telugu, and Tamil with intermediate candidate inspection (English pivot, fluent translation, arbitration notes) and Model 2 Platt scaling.
+- **Page 3 (Baseline vs. Mitigation):** Real-time comparative tables, accuracy gains (+46.1 pp), and relative error reduction.
+- **Page 4 (Calibration Analysis):** Equal-frequency quantile reliability diagrams, ECE curves, and Language-Shift Platt parameter shifts ($\delta_l$).
+- **Page 5 (Cross-Lingual Consistency):** 750 pairwise consistency matrix, LLM judge agreement (88.4%) vs grounded factual evidence consistency (28.7% - 37.3%).
+- **Page 6 (Strategy Experiments & Selective Answering):** Validation selection on $P_{\text{val}}$ ($N=30$) and Strategy E Accuracy-Coverage Pareto curve with interactive $\tau$ slider.
+- **Page 7 (Research Report & Downloads):** Publication-ready paper viewer and one-click data/metrics download center.
+
+### 6. Run Mitigation Benchmark
+To benchmark the mitigation strategies on held-out test data and regenerate all 14 publication figures:
+```bash
+python -u scripts/run_mitigation_benchmark.py
+```
+
+---
+
+## 📚 Complete Research Documentation
+
+Full formal documentation is organized in `docs/`:
+- **[`docs/final_research_report.md`](docs/final_research_report.md):** Complete publication-grade research paper with abstract, introduction, methodology, empirical results, and discussion.
+- **[`docs/methodology.md`](docs/methodology.md):** Methodological specification, dataset partitioning ($P_{\text{cal}}=75, P_{\text{val}}=30, P_{\text{test}}=45$), prompt templates, and calibration formulations.
+- **[`docs/results.md`](docs/results.md):** Comprehensive empirical findings, baseline collapse tables, recalibration metrics, and mitigation gains.
+- **[`docs/limitations.md`](docs/limitations.md):** Explicit scientific limitations regarding model scale, NF4 quantization, instruction-tuning causality caveats, and translation fidelity.
+
 ---
 
 ## 📜 Dataset & Licensing

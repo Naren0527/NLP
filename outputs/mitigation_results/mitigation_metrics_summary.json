@@ -1,0 +1,173 @@
+{
+  "status": "COMPLETED",
+  "timestamp": "2026-11-03T16:16:08Z",
+  "validation_strategy_scores": {
+    "Strategy_A": {
+      "accuracy": 0.3,
+      "brier_score": 0.6141,
+      "n_samples": 120
+    },
+    "Strategy_B": {
+      "accuracy": 0.7667,
+      "brier_score": 0.1902,
+      "n_samples": 120
+    },
+    "Strategy_C": {
+      "accuracy": 0.8,
+      "brier_score": 0.1797,
+      "n_samples": 120
+    },
+    "Strategy_D": {
+      "accuracy": 0.5,
+      "brier_score": 0.4328,
+      "n_samples": 120
+    }
+  },
+  "selected_best_strategy": "Strategy_C",
+  "language_comparisons": {
+    "en": {
+      "language": "en",
+      "language_name": "English",
+      "test_sample_size": 45,
+      "baseline_accuracy": 0.9556,
+      "mitigated_accuracy": 0.8222,
+      "accuracy_gain_percentage_points": -13.34,
+      "relative_error_reduction_pct": -300.4,
+      "baseline_ece": 0.044,
+      "mitigated_ece": 0.1115,
+      "ece_reduction_pct": -153.4,
+      "baseline_brier_score": 0.044,
+      "mitigated_brier_score": 0.1519
+    },
+    "hi": {
+      "language": "hi",
+      "language_name": "Hindi",
+      "test_sample_size": 45,
+      "baseline_accuracy": 0.2381,
+      "mitigated_accuracy": 0.8444,
+      "accuracy_gain_percentage_points": 60.63,
+      "relative_error_reduction_pct": 79.58,
+      "baseline_ece": 0.6798,
+      "mitigated_ece": 0.4902,
+      "ece_reduction_pct": 27.88,
+      "baseline_brier_score": 0.6623,
+      "mitigated_brier_score": 0.381
+    },
+    "bn": {
+      "language": "bn",
+      "language_name": "Bengali",
+      "test_sample_size": 45,
+      "baseline_accuracy": 0.3556,
+      "mitigated_accuracy": 0.8889,
+      "accuracy_gain_percentage_points": 53.33,
+      "relative_error_reduction_pct": 82.76,
+      "baseline_ece": 0.6049,
+      "mitigated_ece": 0.4295,
+      "ece_reduction_pct": 29.0,
+      "baseline_brier_score": 0.6463,
+      "mitigated_brier_score": 0.3012
+    },
+    "te": {
+      "language": "te",
+      "language_name": "Telugu",
+      "test_sample_size": 45,
+      "baseline_accuracy": 0.25,
+      "mitigated_accuracy": 0.8667,
+      "accuracy_gain_percentage_points": 61.67,
+      "relative_error_reduction_pct": 82.22,
+      "baseline_ece": 0.7025,
+      "mitigated_ece": 0.4812,
+      "ece_reduction_pct": 31.5,
+      "baseline_brier_score": 0.6692,
+      "mitigated_brier_score": 0.3704
+    },
+    "ta": {
+      "language": "ta",
+      "language_name": "Tamil",
+      "test_sample_size": 45,
+      "baseline_accuracy": 0.4,
+      "mitigated_accuracy": 0.8444,
+      "accuracy_gain_percentage_points": 44.44,
+      "relative_error_reduction_pct": 74.07,
+      "baseline_ece": 0.5516,
+      "mitigated_ece": 0.4654,
+      "ece_reduction_pct": 15.62,
+      "baseline_brier_score": 0.5791,
+      "mitigated_brier_score": 0.3497
+    }
+  },
+  "selective_answering_tradeoff": {
+    "0.1": {
+      "threshold": 0.1,
+      "coverage": 0.9911,
+      "selective_accuracy": 0.8565,
+      "selective_risk": 0.1435,
+      "answered_count": 223,
+      "abstained_count": 2
+    },
+    "0.2": {
+      "threshold": 0.2,
+      "coverage": 0.9911,
+      "selective_accuracy": 0.8565,
+      "selective_risk": 0.1435,
+      "answered_count": 223,
+      "abstained_count": 2
+    },
+    "0.3": {
+      "threshold": 0.3,
+      "coverage": 0.84,
+      "selective_accuracy": 0.8466,
+      "selective_risk": 0.1534,
+      "answered_count": 189,
+      "abstained_count": 36
+    },
+    "0.4": {
+      "threshold": 0.4,
+      "coverage": 0.6044,
+      "selective_accuracy": 0.8456,
+      "selective_risk": 0.1544,
+      "answered_count": 136,
+      "abstained_count": 89
+    },
+    "0.5": {
+      "threshold": 0.5,
+      "coverage": 0.2933,
+      "selective_accuracy": 0.8182,
+      "selective_risk": 0.1818,
+      "answered_count": 66,
+      "abstained_count": 159
+    },
+    "0.6": {
+      "threshold": 0.6,
+      "coverage": 0.2356,
+      "selective_accuracy": 0.8302,
+      "selective_risk": 0.1698,
+      "answered_count": 53,
+      "abstained_count": 172
+    },
+    "0.7": {
+      "threshold": 0.7,
+      "coverage": 0.2356,
+      "selective_accuracy": 0.8302,
+      "selective_risk": 0.1698,
+      "answered_count": 53,
+      "abstained_count": 172
+    },
+    "0.8": {
+      "threshold": 0.8,
+      "coverage": 0.1911,
+      "selective_accuracy": 0.814,
+      "selective_risk": 0.186,
+      "answered_count": 43,
+      "abstained_count": 182
+    },
+    "0.9": {
+      "threshold": 0.9,
+      "coverage": 0.0222,
+      "selective_accuracy": 1.0,
+      "selective_risk": 0.0,
+      "answered_count": 5,
+      "abstained_count": 220
+    }
+  }
+}
