@@ -34,3 +34,4 @@ Thumbs.db
 # Logs and temporary experiment scratch
 *.log
 scratch/
+results/scratch_matplotlib/

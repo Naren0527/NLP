@@ -1,0 +1,32 @@
+======================================================================
+  LIVE EMPIRICAL MODEL DEMO: GEMMA 3 4B INSTRUCT (RTX 4050 GPU)
+======================================================================
+Loading Gemma 3 4B Instruct with 4-bit NF4 quantization onto CUDA...
+Engine Ready. Device: cuda | Revision: 093f9f388b31...
+----------------------------------------------------------------------
+TEST CASE 1: [ENGLISH - Condition 'en']
+INPUT QUESTION:         What is the capital of India and which river flows through it?
+LANGUAGE / CONDITION:   English (en)
+
+MODEL ANSWER:
+The capital of India is New Delhi. The river that flows through it is the Yamuna.
+
+STATISTICAL CONFIDENCE: 0.9734 (Content Tokens Geometric Probability)
+VERBALIZED CONFIDENCE:  0.99 (99%) [Valid: True]
+INFERENCE LATENCY:      Generation: 7.96s | Confidence: 1.67s
+TOKENS GENERATED:       20 tokens
+----------------------------------------------------------------------
+TEST CASE 2: [HINDI - Condition 'hi']
+INPUT QUESTION:         भारत की राजधानी क्या है और इसके पास कौन सी मुख्य नदी बहती है?
+LANGUAGE / CONDITION:   Hindi (hi)
+
+MODEL ANSWER:
+भारत की राजधानी दिल्ली है। दिल्ली में यमुना नदी मुख्य नदी के रूप में बहती है। यमुना नदी दिल्ली शहर से होकर गुजरती है और यह एक महत्वपूर्ण नदी है।
+
+STATISTICAL CONFIDENCE: 0.8872 (Content Tokens Geometric Probability)
+VERBALIZED CONFIDENCE:  0.99 (99%) [Valid: True]
+INFERENCE LATENCY:      Generation: 10.12s | Confidence: 1.29s
+TOKENS GENERATED:       36 tokens
+======================================================================
+DEMO COMPLETED SUCCESSFULLY IN 140.89s
+======================================================================
