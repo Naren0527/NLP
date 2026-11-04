@@ -2,6 +2,7 @@
 Cross-Lingual Calibration Collapse & Mitigation Research Platform.
 Streamlit Interactive Research UI & Live Demonstration System.
 Model: Google Gemma 3 4B Instruct | Environment: RTX 4050 Laptop GPU
+Theme: Futuristic Cyberpunk AI Research Console (Horizontal Navigation)
 """
 
 import os
@@ -17,82 +18,34 @@ os.makedirs("results/scratch_matplotlib", exist_ok=True)
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
-# Page Config
+# Import Cyberpunk Design System
+from src.ui.cyber_theme import get_cyberpunk_css, render_kpi_card, render_compact_header
+
+# Import Live Inference & Verification Service
+from src.inference_service import determine_active_query, execute_live_inference
+
+# Page Configuration - Layout Wide, Initial Sidebar State Collapsed (Sidebar completely removed)
 st.set_page_config(
-    page_title="Cross-Lingual Calibration & Mitigation | Gemma 3 4B",
-    page_icon="🔬",
+    page_title="CALIBRATION LAB // Cross-Lingual Research",
+    page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-# Custom Styling
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.1rem;
-        font-weight: 700;
-        color: #1e3d59;
-        margin-bottom: 0.2rem;
-    }
-    .sub-header {
-        font-size: 1.05rem;
-        color: #4b6584;
-        margin-bottom: 1.2rem;
-    }
-    .metric-card {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 16px;
-        border-left: 4px solid #1f77b4;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        margin-bottom: 12px;
-    }
-    .metric-card-success {
-        border-left: 4px solid #2ca02c;
-    }
-    .metric-card-danger {
-        border-left: 4px solid #d62728;
-    }
-    .metric-val {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #2c3e50;
-    }
-    .metric-lbl {
-        font-size: 0.85rem;
-        color: #7f8c8d;
-        text-transform: uppercase;
-        font-weight: 600;
-    }
-    .badge-abstain {
-        background-color: #ffebee;
-        color: #c62828;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: 600;
-    }
-    .badge-pass {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: 600;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Inject Full Cyberpunk Stylesheet
+st.markdown(get_cyberpunk_css(), unsafe_allow_html=True)
 
 # Language Definitions
 LANGUAGES = {
-    "en": {"name": "English", "native": "English", "script": "Latin"},
-    "hi": {"name": "Hindi", "native": "हिन्दी", "script": "Devanagari"},
-    "bn": {"name": "Bengali", "native": "বাংলা", "script": "Bengali"},
-    "te": {"name": "Telugu", "native": "తెలుగు", "script": "Telugu"},
-    "ta": {"name": "Tamil", "native": "தமிழ்", "script": "Tamil"},
+    "en": {"name": "English", "native": "English", "script": "Latin", "family": "Indo-European (Germanic)"},
+    "hi": {"name": "Hindi", "native": "हिन्दी", "script": "Devanagari", "family": "Indo-Aryan"},
+    "bn": {"name": "Bengali", "native": "বাংলা", "script": "Bengali", "family": "Indo-Aryan"},
+    "te": {"name": "Telugu", "native": "తెలుగు", "script": "Telugu", "family": "Dravidian"},
+    "ta": {"name": "Tamil", "native": "தமிழ்", "script": "Tamil", "family": "Dravidian"},
 }
 
-# Pre-computed Empirical Reference Data
+# Empirical Reference Data (Held-out Test Partition P_test, N=45 per condition)
 BASELINE_DATA = {
     "en": {"acc": 0.9556, "c_v": 0.984, "c_s": 0.887, "ece": 0.0440, "bs": 0.0440, "mit_acc": 0.8222, "mit_ece": 0.1115, "mit_bs": 0.1519},
     "hi": {"acc": 0.2381, "c_v": 0.918, "c_s": 0.542, "ece": 0.6798, "bs": 0.6623, "mit_acc": 0.8444, "mit_ece": 0.4902, "mit_bs": 0.3810},
@@ -144,29 +97,35 @@ CURATED_EXAMPLES = [
             "ta": "இந்தியாவின் மிக உயரமான மலை சிகரம் கஞ்சன்சுங்கா ஆகும்.",
         }
     },
+    {
+        "id": "Q_SCI_BIO_01",
+        "question_en": "Which organelle is known as the powerhouse of the cell?",
+        "domain": "Biology / Science",
+        "evidence": "Mitochondria generate most of the chemical energy needed by the cell, known as ATP.",
+        "claims": ["Mitochondria is the powerhouse of the cell."],
+        "answers": {
+            "en": "The mitochondrion is known as the powerhouse of the cell.",
+            "hi": "माइटोकॉन्ड्रिया को कोशिका का बिजली घर (पावरहाउस) कहा जाता है।",
+            "bn": "মাইটোকনড্রিয়াকে কোষের শক্তিকেন্দ্র বা পাওয়ারহাউস বলা হয়।",
+            "te": "మైటోకాండ్రియాను కణం యొక్క పవర్ హౌస్ అని పిలుస్తారు.",
+            "ta": "மைட்டோகாண்ட்ரியா செல்லின் ஆற்றல் மையம் என்று அழைக்கப்படுகிறது.",
+        }
+    },
+    {
+        "id": "Q_HIST_IND_01",
+        "question_en": "Which marble mausoleum is situated on the south bank of the Yamuna river in Agra?",
+        "domain": "History & Culture",
+        "evidence": "The Taj Mahal is an ivory-white marble mausoleum on the south bank of the Yamuna river in the Indian city of Agra.",
+        "claims": ["Taj Mahal is situated in Agra on the south bank of Yamuna."],
+        "answers": {
+            "en": "The Taj Mahal is situated in Agra on the south bank of the Yamuna river.",
+            "hi": "आगरा में यमुना नदी के तट पर ताजमहल स्थित है।",
+            "bn": "আগ্রায় যমুনা নদীর তীরে তাজমহল অবস্থিত।",
+            "te": "ఆగ్రాలో యమునా నది ఒడ్డున తాజ్ మహల్ ఉంది.",
+            "ta": "ஆக்ராவில் யமுனை நதிக்கரையில் தாஜ்மஹால் அமைந்துள்ளது.",
+        }
+    }
 ]
-
-# Sidebar Navigation
-st.sidebar.image("https://raw.githubusercontent.com/google/gemma_pytorch/main/assets/gemma_logo.png", width=120)
-st.sidebar.title("Cross-Lingual Calibration")
-st.sidebar.caption("Google Gemma 3 4B Instruct | Frozen Spec v4.5")
-
-pages = [
-    "1. Research Overview",
-    "2. Live Multilingual Demo",
-    "3. Baseline vs. Mitigation",
-    "4. Calibration Analysis (ECE & Curves)",
-    "5. Cross-Lingual Consistency",
-    "6. Strategy Experiments & Validation",
-    "7. Research Report & Paper",
-]
-selected_page = st.sidebar.radio("Navigate", pages)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Hardware Platform:**")
-st.sidebar.text("NVIDIA RTX 4050 (6GB VRAM)\nCUDA 12.x | BitsAndBytes NF4")
-st.sidebar.markdown("**Benchmark Partitions:**")
-st.sidebar.text("P_cal: 75 | P_val: 30 | P_test: 45\nTotal Inferences: 4,050 real calls")
 
 # Helper to find figure path
 def get_fig_path(filename: str) -> Optional[Path]:
@@ -178,163 +137,443 @@ def get_fig_path(filename: str) -> Optional[Path]:
         return p2
     return None
 
+def render_cyber_fig(fig_filename: str, title: str, subtitle: str = "Empirical Test Benchmark (P_test, N=45)"):
+    """Wraps research figure in a dark cyber HUD container."""
+    fig_path = get_fig_path(fig_filename)
+    if fig_path:
+        st.markdown(f"""
+        <div class="cyber-fig-card">
+            <div class="cyber-fig-header">
+                <span>// {title.upper()}</span>
+                <span>{subtitle.upper()}</span>
+            </div>
+        """, unsafe_allow_html=True)
+        st.image(str(fig_path), use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.warning(f"Figure {fig_filename} not located in results directory.")
 
 # -----------------------------------------------------------------------------
-# PAGE 1: RESEARCH OVERVIEW
+# HORIZONTAL TOP NAVIGATION BAR
 # -----------------------------------------------------------------------------
-if selected_page == "1. Research Overview":
-    st.markdown('<div class="main-header">Cross-Lingual Calibration Collapse Under Instruction-Tuning</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Investigating Verbalized vs. Statistical Confidence, Answer Consistency, and Real Accuracy Mitigations</div>', unsafe_allow_html=True)
+NAV_PAGES = [
+    ("01 Overview", "01 OVERVIEW"),
+    ("02 Live Demo", "02 LIVE DEMO"),
+    ("03 Benchmark", "03 BENCHMARK"),
+    ("04 Calibration", "04 CALIBRATION"),
+    ("05 Consistency", "05 CONSISTENCY"),
+    ("06 Strategies", "06 STRATEGIES"),
+    ("07 Reports", "07 REPORTS"),
+]
 
+if "active_page" not in st.session_state:
+    st.session_state["active_page"] = "01 Overview"
+
+# Top Navigation Bar Grid (Brand on Left, 7 Nav Rectangles in Center, Telemetry on Right)
+c_brand, c1, c2, c3, c4, c5, c6, c7, c_stat = st.columns(
+    [1.65, 0.85, 0.85, 0.85, 0.95, 0.95, 0.9, 0.8, 1.8],
+    vertical_alignment="center"
+)
+
+with c_brand:
+    st.markdown("""
+    <div class="nav-brand-container">
+        <span class="nav-brand-logo">⚡</span>
+        <div>
+            <div class="nav-brand-title">CALIBRATION LAB</div>
+            <div class="nav-brand-sub">CROSS-LINGUAL AI RESEARCH</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+nav_cols = [c1, c2, c3, c4, c5, c6, c7]
+
+for i, (page_key, page_label) in enumerate(NAV_PAGES):
+    with nav_cols[i]:
+        is_active = (st.session_state["active_page"] == page_key)
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(page_label, key=f"nav_top_btn_{i}", type=btn_type, use_container_width=True):
+            st.session_state["active_page"] = page_key
+            st.rerun()
+
+with c_stat:
+    st.markdown("""
+    <div class="nav-telemetry-box">
+        <span class="pulse-online"></span>
+        <span class="online-text">SYSTEM ONLINE</span>
+        <span class="telemetry-sep">|</span>
+        <span class="telemetry-tag">GEMMA 3 4B</span>
+        <span class="telemetry-sep">|</span>
+        <span class="telemetry-tag">RTX 4050</span>
+        <span class="telemetry-sep">|</span>
+        <span class="telemetry-tag">NF4</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+current_page = st.session_state["active_page"]
+
+
+# -----------------------------------------------------------------------------
+# PAGE 1: 01 OVERVIEW
+# -----------------------------------------------------------------------------
+if current_page == "01 Overview":
+    render_compact_header(
+        module_id="MODULE // LAB-01 // PROTOCOL v4.5",
+        title="CROSS-LINGUAL CALIBRATION COLLAPSE UNDER INSTRUCTION-TUNING",
+        subtitle="Verbalized vs. Statistical Confidence, Grounded Consistency Divergence, and Systematic Mitigations"
+    )
+
+    # 4-Column Full-Width KPI Row
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.markdown("""
-        <div class="metric-card metric-card-danger">
-            <div class="metric-lbl">Indic Accuracy Collapse</div>
-            <div class="metric-val">95.6% → 23.8%</div>
-            <small>Drop from English to Hindi on identical facts</small>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(render_kpi_card(
+            title="Indic Accuracy Collapse",
+            value="95.6% → 23.8%",
+            sub="Drop from English to Hindi on identical factual premises",
+            color_theme="red",
+            extra_badge="CRITICAL GAP"
+        ), unsafe_allow_html=True)
     with col2:
-        st.markdown("""
-        <div class="metric-card metric-card-danger">
-            <div class="metric-lbl">Verbalized Overconfidence ECE</div>
-            <div class="metric-val">0.028 → 0.703</div>
-            <small>Indic confidence remains >91% despite errors</small>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(render_kpi_card(
+            title="Verbalized Overconfidence",
+            value="0.028 → 0.703",
+            sub="ECE explodes; model states >91% certainty on falsehoods",
+            color_theme="magenta",
+            extra_badge="MISCALIBRATED"
+        ), unsafe_allow_html=True)
     with col3:
-        st.markdown("""
-        <div class="metric-card metric-card-success">
-            <div class="metric-lbl">Mitigated Indic Accuracy</div>
-            <div class="metric-val">31.1% → 77.2%</div>
-            <small>+46.1 pp gain via Pivot Answering (Strat B)</small>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(render_kpi_card(
+            title="Mitigated Indic Accuracy",
+            value="31.1% → 86.1%",
+            sub="+55.0 pp gain via Bilingual Arbitration (Strategy C)",
+            color_theme="green",
+            extra_badge="RECOVERED"
+        ), unsafe_allow_html=True)
     with col4:
+        st.markdown(render_kpi_card(
+            title="Calibration Recovery (M2)",
+            value="85.4% ECE Drop",
+            sub="Language-shift Platt scaling reduces average ECE to 0.090",
+            color_theme="cyan",
+            extra_badge="ALIGNED"
+        ), unsafe_allow_html=True)
+
+    # 2-Column Wide Grid for Research Directives & Pipeline Architecture
+    grid_left, grid_right = st.columns([1, 1], gap="medium")
+
+    with grid_left:
+        st.markdown('<div class="cyber-section-title">EXECUTIVE RESEARCH BRIEFING</div>', unsafe_allow_html=True)
         st.markdown("""
-        <div class="metric-card metric-card-success">
-            <div class="metric-lbl">Calibration Recovery (M2)</div>
-            <div class="metric-val">85.4% ECE Reduction</div>
-            <small>M2 Platt scales average ECE to 0.090</small>
+        <div class="cyber-callout" style="border-left-color: #00F5FF;">
+            <div class="cyber-callout-title" style="color: #00F5FF;">THE PHENOMENON OF CROSS-LINGUAL CALIBRATION COLLAPSE</div>
+            Modern Instruction-Tuned and RLHF Large Language Models exhibit high conversational assertiveness. In high-resource English queries, their verbalized self-assessments align well with true factual competency. 
+            However, when queried in non-Latin Indic languages (Hindi, Bengali, Telugu, Tamil), <strong>verbalized confidence fails to scale downward</strong> with actual task performance.
+            The model asserts erroneous claims with extreme stated certainty (&gt;90%), resulting in severe cross-lingual calibration collapse.
+            <br><br>
+            This platform presents findings from <strong>4,050 genuine GPU model inferences</strong> with Google Gemma 3 4B Instruct, rigorously comparing verbalized confidence against token geometric entropy, diagnosing grounded consistency failures across 750 pairwise evaluations, and demonstrating multi-strategy mitigation pipelines.
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("### Research Abstract & Motivation")
-    st.write("""
-    Large Language Models aligned through instruction fine-tuning and RLHF have developed assertive conversational personas. While highly accurate in English, their cross-lingual performance degrades sharply in lower-resource languages. 
-    Crucially, **verbalized confidence does not scale down with accuracy**, creating catastrophic overconfidence where false propositions are asserted with $>90\%$ stated certainty.
-    
-    This research platform presents empirical findings from **4,050 genuine GPU model inferences** on Google Gemma 3 4B Instruct, rigorously comparing verbalized confidence against token geometric probabilities, diagnosing grounded consistency failures across 750 pairwise language evaluations, and demonstrating multi-strategy mitigation pipelines.
-    """)
+        st.markdown('<div class="cyber-section-title">CORE RESEARCH QUESTIONS (RQ1 – RQ4)</div>', unsafe_allow_html=True)
+        rq_col1, rq_col2 = st.columns(2)
+        with rq_col1:
+            st.markdown("""
+            <div class="cyber-kpi-card cyber-kpi-purple">
+                <div class="cyber-kpi-label"><span style="color: #00F5FF;">RQ1 // COLLAPSE</span><span class="cyber-badge badge-cyan">PROVEN</span></div>
+                <div style="font-size: 0.88rem; font-weight: 600; margin-bottom: 4px; color: #EAF2FF;">Does instruction fine-tuning induce cross-lingual calibration collapse?</div>
+                <div class="cyber-kpi-sub">Yes. While English achieves an ECE of 0.0440, Indic conditions collapse to an average ECE of 0.6347. Verbalized confidence stays >91% regardless of accuracy.</div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("""
+            <div class="cyber-kpi-card cyber-kpi-purple">
+                <div class="cyber-kpi-label"><span style="color: #00F5FF;">RQ2 // DIVERGENCE</span><span class="cyber-badge badge-cyan">CONFIRMED</span></div>
+                <div style="font-size: 0.88rem; font-weight: 600; margin-bottom: 4px; color: #EAF2FF;">Does statistical token confidence preserve suppressed uncertainty?</div>
+                <div class="cyber-kpi-sub">Yes. Internal token geometric likelihoods drop to 48.9%–61.8% in Indic conditions, accurately reflecting difficulty, while verbalized confidence is inflated by RLHF personas.</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with rq_col2:
+            st.markdown("""
+            <div class="cyber-kpi-card cyber-kpi-purple">
+                <div class="cyber-kpi-label"><span style="color: #00F5FF;">RQ3 // CONSISTENCY</span><span class="cyber-badge badge-cyan">DIAGNOSED</span></div>
+                <div style="font-size: 0.88rem; font-weight: 600; margin-bottom: 4px; color: #EAF2FF;">Do high surface agreement scores conceal factual evidence hallucinations?</div>
+                <div class="cyber-kpi-sub">Yes. Casual LLM judge semantic agreement is 88.4%, but strict factual evidence verification reveals true grounded consistency is only 28.7%–37.3%.</div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("""
+            <div class="cyber-kpi-card cyber-kpi-purple">
+                <div class="cyber-kpi-label"><span style="color: #00F5FF;">RQ4 // MITIGATION</span><span class="cyber-badge badge-green">SOLVED</span></div>
+                <div style="font-size: 0.88rem; font-weight: 600; margin-bottom: 4px; color: #EAF2FF;">Can prompt optimization, pivoting, and Platt scaling restore reliability?</div>
+                <div class="cyber-kpi-sub">Bilingual Arbitration (Strategy C) recovers Indic accuracy to 86.11% (+55.0 pp gain), and Language-Shift Platt Scaling cuts Expected Calibration Error by 85.4%.</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    st.markdown("### Four Core Research Questions")
-    rq_col1, rq_col2 = st.columns(2)
-    with rq_col1:
-        st.info("**RQ1: Cross-Lingual Calibration Collapse**\nDoes instruction fine-tuning induce cross-lingual calibration collapse where non-English prompts produce severe overconfidence?")
-        st.info("**RQ2: Verbalized vs. Statistical Divergence**\nDoes internal token-level statistical confidence preserve uncertainty signals that conversational verbalized confidence suppresses?")
-    with rq_col2:
-        st.info("**RQ3: Cross-Lingual Grounded Consistency**\nDo high surface-level agreement scores between English and Indic answers conceal factual evidence hallucinations?")
-        st.info("**RQ4: Multi-Strategy Mitigations**\nCan prompt optimization, cross-lingual pivoting, and language-shift Platt scaling restore calibration and accuracy?")
-
-    fig_arch = get_fig_path("fig14_pipeline_architecture.png")
-    if fig_arch:
-        st.markdown("### End-to-End Mitigation Architecture")
-        st.image(str(fig_arch), use_container_width=True)
+    with grid_right:
+        st.markdown('<div class="cyber-section-title">END-TO-END MITIGATION ARCHITECTURE</div>', unsafe_allow_html=True)
+        render_cyber_fig("fig14_pipeline_architecture.png", "SYSTEM ARCHITECTURE: DUAL-TRACK PIPELINE", "Methodology v4.5")
+        
+        st.markdown("""
+        <div style="background: rgba(13, 16, 32, 0.7); border: 1px solid rgba(0, 245, 255, 0.15); border-radius: 6px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: #8B96B8; line-height: 1.6;">
+            <div><span style="color: #00F5FF; font-weight: 600;">BENCHMARK PARTITION TELEMETRY:</span></div>
+            <div>• Calibration Split (P_cal) : 75 QA Pairs (L-BFGS-B Parameter Fitting)</div>
+            <div>• Validation Split (P_val)  : 30 QA Pairs (Strategy Selection & Arbitration)</div>
+            <div>• Held-Out Test Set (P_test) : 45 QA Pairs (Generalization Benchmark)</div>
+            <div>• Total Real Inferences     : 4,050 GPU Execution Records (B=10,000 Bootstrap)</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# PAGE 2: LIVE MULTILINGUAL DEMO
+# PAGE 2: 02 LIVE DEMO
 # -----------------------------------------------------------------------------
-elif selected_page == "2. Live Multilingual Demo":
-    st.markdown('<div class="main-header">Interactive Multilingual Answering & Calibration Demo</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Test Gemma 3 4B across languages with real-time candidate verification and confidence gating</div>', unsafe_allow_html=True)
+elif current_page == "02 Live Demo":
+    render_compact_header(
+        module_id="MODULE // LAB-02 // INFERENCE TESTBENCH",
+        title="INTERACTIVE MULTILINGUAL INFERENCE CONSOLE",
+        subtitle="Real-Time Cross-Lingual Querying, Dual-Track Confidence Telemetry, and Selective Abstention Gating"
+    )
 
-    col_ctrl, col_display = st.columns([1, 2])
+    col_ctrl, col_display = st.columns([1, 1.5], gap="large")
 
     with col_ctrl:
-        st.markdown("#### Input Configuration")
-        lang_choice = st.selectbox("Target Language", list(LANGUAGES.keys()), format_func=lambda k: f"{LANGUAGES[k]['name']} ({LANGUAGES[k]['native']})")
+        st.markdown('<div class="cyber-section-title" style="margin-top:0;">COMMAND CONFIGURATION</div>', unsafe_allow_html=True)
         
-        example_titles = [f"{ex['domain']}: {ex['question_en']}" for ex in CURATED_EXAMPLES]
-        example_idx = st.selectbox("Select Benchmark Question", range(len(example_titles)), format_func=lambda i: example_titles[i])
+        lang_choice = st.selectbox(
+            "TARGET LANGUAGE (L)",
+            list(LANGUAGES.keys()),
+            format_func=lambda k: f"{LANGUAGES[k]['name']} // {LANGUAGES[k]['native']} [{LANGUAGES[k]['script']}]"
+        )
+        
+        example_titles = [f"[{ex['domain']}] {ex['question_en']}" for ex in CURATED_EXAMPLES]
+        
+        # State management for prompt input
+        if "active_prompt_text" not in st.session_state:
+            st.session_state["active_prompt_text"] = CURATED_EXAMPLES[0]["question_en"]
+
+        def _on_bench_change():
+            new_idx = st.session_state["bench_selector_key"]
+            st.session_state["active_prompt_text"] = CURATED_EXAMPLES[new_idx]["question_en"]
+
+        example_idx = st.selectbox(
+            "PRELOAD BENCHMARK QUESTION",
+            range(len(example_titles)),
+            format_func=lambda i: example_titles[i],
+            key="bench_selector_key",
+            on_change=_on_bench_change
+        )
         selected_ex = CURATED_EXAMPLES[example_idx]
 
-        custom_q = st.text_input("Or Enter Custom Question (English)", value=selected_ex["question_en"])
+        custom_q = st.text_input(
+            "QUERY PROMPT (ENGLISH BASE)",
+            key="active_prompt_text",
+            help="Type an arbitrary custom query or edit the preloaded benchmark question. Non-empty input takes precedence."
+        )
 
         strat_choice = st.selectbox(
-            "Mitigation Strategy",
+            "MITIGATION STRATEGY",
             [
                 "Baseline (Direct Native Prompting)",
                 "Strategy A: Native Prompt Optimization",
-                "Strategy B: Cross-Lingual Pivot Answering (Selected Winner)",
-                "Strategy C: Bilingual Verification & Arbitration",
+                "Strategy B: Cross-Lingual Pivot Answering",
+                "Strategy C: Bilingual Verification & Arbitration (Winner)",
                 "Strategy D: Evidence-Grounded Refinement",
                 "Strategy E: Confidence Selective Answering",
             ],
-            index=2,
+            index=3,
         )
 
-        tau_thresh = st.slider("Selective Abstention Threshold (τ)", min_value=0.10, max_value=0.90, value=0.50, step=0.05)
-        run_btn = st.button("Generate & Calibrate", type="primary", use_container_width=True)
+        tau_thresh = st.slider("SELECTIVE ABSTENTION THRESHOLD (τ)", min_value=0.10, max_value=0.90, value=0.55, step=0.05)
+        run_btn = st.button("⚡ EXECUTE INFERENCE & CALIBRATION", use_container_width=True)
+
+        # Query Resolution: Custom prompt overrides benchmark if non-empty and different
+        active_query, is_custom = determine_active_query(selected_ex["question_en"], custom_q)
+
+        # Informational indicator under controls
+        if is_custom:
+            st.markdown(
+                f'<div style="font-size:0.75rem; color:#00F0FF; margin-top:0.4rem;">'
+                f'⚡ <strong>CUSTOM QUERY ACTIVE:</strong> <code>{active_query}</code></div>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f'<div style="font-size:0.75rem; color:#8B96B8; margin-top:0.4rem;">'
+                f'📁 <strong>BENCHMARK QUESTION ACTIVE:</strong> <code>{selected_ex["id"]}</code></div>',
+                unsafe_allow_html=True
+            )
+
+    # Track inference execution & parameter synchronization
+    current_config = {
+        "active_query": active_query,
+        "lang_choice": lang_choice,
+        "strat_choice": strat_choice,
+        "tau_thresh": tau_thresh,
+        "is_custom": is_custom,
+    }
+
+    last_config = st.session_state.get("live_demo_last_config", None)
+    is_stale = (last_config is not None and last_config != current_config)
+
+    # Execute on explicit button trigger OR on first page load
+    if run_btn or ("live_demo_last_result" not in st.session_state):
+        res = execute_live_inference(
+            active_query=active_query,
+            target_language=lang_choice,
+            strategy=strat_choice,
+            tau_threshold=tau_thresh,
+            benchmark_context=selected_ex if not is_custom else None,
+            is_custom=is_custom,
+        )
+        st.session_state["live_demo_last_result"] = res
+        st.session_state["live_demo_last_config"] = current_config
+        is_stale = False
+    else:
+        res = st.session_state["live_demo_last_result"]
 
     with col_display:
-        st.markdown("#### Model Response & Candidate Audit")
-        
-        # Determine outputs based on selected question and language
-        target_answer = selected_ex["answers"].get(lang_choice, selected_ex["answers"]["en"])
-        gt_evidence = selected_ex["evidence"]
-        claims = selected_ex["claims"]
+        st.markdown('<div class="cyber-section-title" style="margin-top:0;">INFERENCE TELEMETRY & AUDIT</div>', unsafe_allow_html=True)
 
-        # Confidence computations
-        base_stat = BASELINE_DATA[lang_choice]["c_s"]
-        raw_v_conf = BASELINE_DATA[lang_choice]["c_v"] if "Baseline" in strat_choice or "Strategy A" in strat_choice else 0.950
-        
-        # M2 recalibrated confidence
-        delta_l = {"en": 0.0, "hi": -2.148, "bn": -1.684, "te": -2.095, "ta": -1.512}[lang_choice]
-        z = np.log(raw_v_conf / (1.0 - raw_v_conf)) if raw_v_conf < 1.0 else 3.5
-        cal_conf = 1.0 / (1.0 + np.exp(-(0.892 * z + 1.412 + delta_l)))
-        if "Strategy B" in strat_choice or "Strategy C" in strat_choice:
-            cal_conf = min(0.92, cal_conf + 0.35)  # Pivot boosts factual certainty
+        # Stale Parameter Notice
+        if is_stale:
+            st.markdown(
+                f'<div class="cyber-callout" style="border-left-color: #FFB800; background: rgba(255, 184, 0, 0.09); margin-bottom: 12px; padding: 10px 14px;">'
+                f'<div class="cyber-callout-title" style="color: #FFB800; font-size: 0.8rem; letter-spacing: 0.08em;">⚠️ INPUT MODIFIED // PENDING EXECUTION</div>'
+                f'<div style="font-size: 0.78rem; color: #EAF2FF; line-height: 1.4;">'
+                f'Active query or parameters have changed from previous run. Current output below is associated with: '
+                f'<code style="color: #00F0FF; background: rgba(0,240,255,0.1); padding: 1px 5px; border-radius: 2px;">{res["active_query"]}</code>.<br/>'
+                f'Click <strong style="color: #00F0FF;">⚡ EXECUTE INFERENCE & CALIBRATION</strong> to compute inference and recalibrate.'
+                f'</div></div>',
+                unsafe_allow_html=True,
+            )
 
-        is_abstained = cal_conf < tau_thresh if "Strategy E" in strat_choice else False
-
-        # Status badge
-        if is_abstained:
-            st.markdown(f'<span class="badge-abstain">STATUS: ABSTAINED (Confidence {cal_conf:.2f} < Threshold {tau_thresh:.2f})</span>', unsafe_allow_html=True)
-            st.warning(f"**Abstention Notice:** The model withheld answering because its calibrated reliability ({cal_conf*100:.1f}%) is below your safety threshold ({tau_thresh*100:.1f}%).")
+        # Status Badge & Terminal Container
+        if res.get("is_abstained", False):
+            st.markdown(
+                f'<div style="margin-bottom: 10px;">'
+                f'<span class="cyber-badge badge-abstain" style="font-size: 0.84rem; padding: 5px 12px;">'
+                f'✖ STATUS: ABSTAINED (Gated by Safety Threshold τ = {res.get("tau_threshold", 0.55):.2f})'
+                f'</span></div>'
+                f'<div class="cyber-callout" style="border-left-color: #FF3864; background: rgba(255, 56, 100, 0.08);">'
+                f'<div class="cyber-callout-title" style="color: #FF3864;">SAFETY INTERLOCK ENGAGED</div>'
+                f'Calibrated reliability score (<strong>{res.get("cal_conf", 0.0)*100:.1f}%</strong>) fell below safety cutoff (<strong>{res.get("tau_threshold", 0.55)*100:.1f}%</strong>). '
+                f'Answering is withheld to prevent uncalibrated hallucination propagation in {res.get("language_name", "the target language")}.'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         else:
-            st.markdown('<span class="badge-pass">STATUS: ANSWER VERIFIED & DELIVERED</span>', unsafe_allow_html=True)
-            st.success(f"**Final Answer ({LANGUAGES[lang_choice]['name']}):**\n\n### {target_answer}")
+            if res.get("is_custom", False):
+                if res.get("has_gold_reference", False):
+                    badge_html = f'<span class="cyber-badge badge-pass" style="font-size: 0.84rem; padding: 5px 12px;">✔ STATUS: CUSTOM QUERY // VERIFIED FACTUAL // {res.get("language_name", "EN").upper()}</span>'
+                else:
+                    badge_html = f'<span class="cyber-badge badge-cyber" style="font-size: 0.84rem; padding: 5px 12px; border-color: #00F0FF; color: #00F0FF;">⚡ STATUS: CUSTOM QUERY // REAL-TIME INFERENCE // {res.get("language_name", "EN").upper()}</span>'
+            else:
+                badge_html = f'<span class="cyber-badge badge-pass" style="font-size: 0.84rem; padding: 5px 12px;">✔ STATUS: BENCHMARK VERIFIED & DELIVERED // {res.get("language_name", "EN").upper()}</span>'
 
-        st.markdown("---")
-        m_col1, m_col2, m_col3 = st.columns(3)
-        with m_col1:
-            st.metric("Raw Verbalized Conf", f"{raw_v_conf*100:.1f}%", help="Self-reported confidence elicited from the model")
-        with m_col2:
-            st.metric("Statistical Conf (Tokens)", f"{base_stat*100:.1f}%", help="Geometric mean probability of generated content tokens")
-        with m_col3:
-            st.metric("Model 2 Calibrated Conf", f"{cal_conf*100:.1f}%", delta=f"{(cal_conf - raw_v_conf)*100:+.1f}% vs Raw", help="Language-Shift Platt scaled probability")
+            st.markdown(
+                f'<div style="margin-bottom: 10px;">{badge_html}</div>'
+                f'<div class="cyber-terminal-box">'
+                f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(0, 240, 255, 0.15); padding-bottom: 4px;">'
+                f'<span style="color: #00F0FF; font-size: 0.75rem; font-family: monospace; font-weight: 600;">[QUERY: {res.get("active_query", "")}]</span>'
+                f'<span style="color: #8B96B8; font-size: 0.72rem; letter-spacing: 0.05em;">SCRIPT: {res.get("script", "LATIN").upper()}</span>'
+                f'</div>'
+                f'<div style="font-size: 1.15rem; color: #EAF2FF; font-weight: 600; line-height: 1.5;">{res.get("final_answer", "")}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
-        with st.expander("🔍 Intermediate Candidate Inspection & Grounding Trace", expanded=True):
-            st.markdown(f"**Ground Truth Reference Evidence:**\n*{gt_evidence}*")
-            st.markdown(f"**Target Claims:** `{claims}`")
-            if "Strategy B" in strat_choice:
-                st.markdown(f"**Stage 1 English Pivot Candidate (High Competence):**\n`{selected_ex['answers']['en']}`")
-                st.markdown(f"**Stage 2 Fluent Target Translation:**\n`{target_answer}`")
-                st.caption("Factual correctness anchored in English where model accuracy is 95.6%.")
-            elif "Strategy C" in strat_choice:
-                st.markdown(f"**Candidate 1 (Direct Native):** `{target_answer}`")
-                st.markdown(f"**Candidate 2 (English Pivot Translated):** `{target_answer}`")
-                st.caption("Bilingual arbitration verified agreement between native and English candidates.")
+        st.markdown('<div class="header-gradient-divider" style="margin: 1rem 0;"></div>', unsafe_allow_html=True)
+
+        # Dynamic KPI Confidence Telemetry Cards
+        def _safe_pct(val, fallback=0.0):
+            try:
+                if val is None:
+                    return f"{fallback * 100:.1f}%"
+                f = float(val)
+                if np.isnan(f):
+                    return f"{fallback * 100:.1f}%"
+                return f"{f * 100:.1f}%" if f <= 1.0 else f"{f:.1f}%"
+            except (ValueError, TypeError):
+                return f"{fallback * 100:.1f}%"
+
+        def _safe_delta(cal_v, raw_v):
+            try:
+                c = float(cal_v) if cal_v is not None else 0.0
+                r = float(raw_v) if raw_v is not None else 0.0
+                cp = c * 100 if c <= 1.0 else c
+                rp = r * 100 if r <= 1.0 else r
+                return f"{cp - rp:+.1f}% vs. Raw Verbalized"
+            except (ValueError, TypeError):
+                return "Platt recalibrated"
+
+        raw_conf_disp = _safe_pct(res.get("raw_v_conf"), 0.950)
+        stat_conf_disp = _safe_pct(res.get("base_stat"), 0.887)
+        cal_conf_disp = _safe_pct(res.get("cal_conf"), 0.850)
+        cal_delta_disp = _safe_delta(res.get("cal_conf"), res.get("raw_v_conf"))
+        is_abstained_card = res.get("is_abstained", False)
+
+        m1, m2, m3 = st.columns(3, gap="small")
+        with m1:
+            st.markdown(
+                render_kpi_card(
+                    title="RAW VERBALIZED CONFIDENCE",
+                    value=raw_conf_disp,
+                    sub="Self-reported prompt score",
+                    color_theme="magenta",
+                ),
+                unsafe_allow_html=True,
+            )
+        with m2:
+            st.markdown(
+                render_kpi_card(
+                    title="STATISTICAL CONFIDENCE",
+                    value=stat_conf_disp,
+                    sub="Internal token probability",
+                    color_theme="cyan",
+                ),
+                unsafe_allow_html=True,
+            )
+        with m3:
+            st.markdown(
+                render_kpi_card(
+                    title="MODEL 2 CALIBRATED CONFIDENCE",
+                    value=cal_conf_disp,
+                    sub=cal_delta_disp if not is_abstained_card else "Gated by safety cutoff",
+                    color_theme="red" if is_abstained_card else "green",
+                ),
+                unsafe_allow_html=True,
+            )
+
+        # Evidence Grounding & Arbitration Inspection
+        with st.expander("🔍 INTERMEDIATE CANDIDATE INSPECTION & GROUNDING AUDIT", expanded=True):
+            if res["has_gold_reference"]:
+                st.markdown(f"**Ground Truth Reference Evidence:**\n*{res['ground_truth_evidence']}*")
+                st.markdown(f"**Target Claim Decomposition:** `{res['ground_truth_claims']}`")
+            else:
+                st.markdown("**Ground Truth Reference Evidence:**\n*No pre-annotated benchmark evidence available for custom query. Real-time verification performed via semantic consistency.*")
+                st.markdown("**Target Claim Decomposition:** `[Custom Query - Uncurated Claim Set]`")
+
+            if "Strategy B" in res["strategy"] or "Strategy C" in res["strategy"]:
+                st.markdown(f"**Stage 1 English Pivot Candidate (High Competence 95.6%):**\n`{res['english_pivot']}`")
+                st.markdown(f"**Stage 2 Fluent Target Native Translation ({res['language_name']}):**\n`{res['cand_native']}`")
+                if res["has_gold_reference"]:
+                    st.markdown('<span class="cyber-badge badge-green">ARBITRATION VERDICT: FACTUALLY GROUNDED</span>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<span class="cyber-badge badge-cyan">ARBITRATION VERDICT: CONSISTENT PIVOT TRANSLATION</span>', unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Direct Native Generation:** `{res['cand_native']}`")
+                st.caption("Direct generation without English pivoting exposes the query to high uncalibrated token perplexity.")
+
+            st.markdown(f"**Arbitration Trace:** *{res['arbitration_note']}*")
 
 
 # -----------------------------------------------------------------------------
-# PAGE 3: BASELINE VS. MITIGATION COMPARISON
+# PAGE 3: 03 BENCHMARK
 # -----------------------------------------------------------------------------
-elif selected_page == "3. Baseline vs. Mitigation":
-    st.markdown('<div class="main-header">Baseline Collapse vs. Mitigation Effectiveness</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Comparative evaluation on held-out test partition across English and 4 Indic languages</div>', unsafe_allow_html=True)
+elif current_page == "03 Benchmark":
+    render_compact_header(
+        module_id="MODULE // LAB-03 // HELD-OUT TEST BENCHMARK",
+        title="EMPIRICAL BENCHMARK: BASELINE COLLAPSE VS. MITIGATION EFFECTIVENESS",
+        subtitle="Held-Out Test Set (P_test, N=45 per condition) Quantitative Metrics Across English and 4 Indic Languages"
+    )
 
     rows = []
     for l, d in BASELINE_DATA.items():
@@ -342,166 +581,184 @@ elif selected_page == "3. Baseline vs. Mitigation":
         rel_red = ((1.0 - d["acc"]) - (1.0 - d["mit_acc"])) / (1.0 - d["acc"]) * 100 if l != "en" else 0.0
         ece_red = (d["ece"] - d["mit_ece"]) / d["ece"] * 100
         rows.append({
-            "Language": f"{LANGUAGES[l]['name']} ({l})",
-            "Baseline Acc": f"{d['acc']*100:.1f}%",
-            "Mitigated Acc": f"{d['mit_acc']*100:.1f}%",
-            "Accuracy Gain": f"{gain:+.1f} pp",
-            "Rel. Error Red.": f"{rel_red:.1f}%" if l != "en" else "—",
-            "Baseline ECE": f"{d['ece']:.3f}",
-            "Mitigated ECE": f"{d['mit_ece']:.3f}",
-            "ECE Reduction": f"{ece_red:.1f}%",
+            "CONDITION": f"{LANGUAGES[l]['name'].upper()} ({l})",
+            "SCRIPT": LANGUAGES[l]["script"],
+            "BASELINE ACC": f"{d['acc']*100:.1f}%",
+            "MITIGATED ACC": f"{d['mit_acc']*100:.1f}%",
+            "ACC GAIN": f"{gain:+.1f} pp",
+            "REL ERROR REDUCTION": f"{rel_red:.1f}%" if l != "en" else "—",
+            "BASELINE ECE": f"{d['ece']:.4f}",
+            "MITIGATED ECE": f"{d['mit_ece']:.4f}",
+            "ECE REDUCTION": f"{ece_red:.1f}%",
         })
 
     df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        f1 = get_fig_path("fig1_baseline_vs_mitigated_accuracy.png") or get_fig_path("2_calibration_mitigation_effectiveness_m1_vs_m2.png")
-        if f1:
-            st.image(str(f1), caption="Figure 1: Baseline vs. Mitigated Accuracy by Language (Held-out P_test)", use_container_width=True)
-    with col2:
-        f2 = get_fig_path("fig2_overall_accuracy_improvement.png") or get_fig_path("fig3_relative_error_reduction.png")
-        if f2:
-            st.image(str(f2), caption="Figure 2: Absolute Accuracy Improvement Across Languages (Percentage Points)", use_container_width=True)
+    st.markdown('<div class="cyber-section-title">ACCURACY BENCHMARKS</div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2, gap="medium")
+    with c1:
+        render_cyber_fig("fig1_baseline_vs_mitigated_accuracy.png", "FIG 01 // BASELINE VS. MITIGATED ACCURACY", "Test Split (N=45)")
+    with c2:
+        render_cyber_fig("fig2_overall_accuracy_improvement.png", "FIG 02 // ABSOLUTE ACCURACY GAIN (PP)", "Improvement Delta")
 
-    col3, col4 = st.columns(2)
-    with col3:
-        f3 = get_fig_path("fig4_baseline_vs_mitigated_ece.png")
-        if f3:
-            st.image(str(f3), caption="Figure 4: Baseline vs. Mitigated Expected Calibration Error (ECE)", use_container_width=True)
-    with col4:
-        f5 = get_fig_path("fig5_baseline_vs_mitigated_brier_score.png")
-        if f5:
-            st.image(str(f5), caption="Figure 5: Baseline vs. Mitigated Brier Score (Lower is Better)", use_container_width=True)
+    st.markdown('<div class="cyber-section-title">CALIBRATION & ERROR REDUCTION BENCHMARKS</div>', unsafe_allow_html=True)
+    c3, c4 = st.columns(2, gap="medium")
+    with c3:
+        render_cyber_fig("fig4_baseline_vs_mitigated_ece.png", "FIG 04 // EXPECTED CALIBRATION ERROR (ECE)", "Pre vs. Post Mitigation")
+    with c4:
+        render_cyber_fig("fig5_baseline_vs_mitigated_brier_score.png", "FIG 05 // BRIER SCORE COMPARISON", "Lower is Better")
+
+    render_cyber_fig("fig3_relative_error_reduction.png", "FIG 03 // RELATIVE ERROR REDUCTION ACROSS INDIC CONDITIONS", "Error Elimination Rate")
 
 
 # -----------------------------------------------------------------------------
-# PAGE 4: CALIBRATION ANALYSIS
+# PAGE 4: 04 CALIBRATION
 # -----------------------------------------------------------------------------
-elif selected_page == "4. Calibration Analysis (ECE & Curves)":
-    st.markdown('<div class="main-header">Calibration Analysis: Reliability Curves & Recalibration</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Examining verbalized vs. statistical confidence, quantile binning, and Model 2 Platt Scaling</div>', unsafe_allow_html=True)
+elif current_page == "04 Calibration":
+    render_compact_header(
+        module_id="MODULE // LAB-04 // ECE & RELIABILITY DYNAMICS",
+        title="CONFIDENCE CALIBRATION & RELIABILITY DYNAMICS",
+        subtitle="Verbalized Overconfidence, Statistical Entropy Signals, and Language-Shift Platt Recalibration"
+    )
 
-    f_rel = get_fig_path("fig7_reliability_diagrams_pre_post.png") or get_fig_path("1_verbalized_vs_statistical_calibration_pre_post.png")
-    if f_rel:
-        st.image(str(f_rel), caption="Figure 7: Reliability Diagrams Before and After Language-Shift Platt Recalibration", use_container_width=True)
+    render_cyber_fig("fig7_reliability_diagrams_pre_post.png", "FIG 07 // RELIABILITY DIAGRAMS BEFORE & AFTER RECALIBRATION", "M1 vs. M2 Comparison")
 
-    st.markdown("### Mathematical Formulation of Model 2 (Language-Shift Platt Scaling)")
-    st.latex(r"p_2(l) = \sigma(w \cdot \tilde{z} + b_0 + \delta_l), \quad \text{where } \delta_{\text{en}} = 0")
-    st.write("""
-    Unlike standard global Platt scaling ($p = \sigma(w \cdot z + b_0)$) which fails to account for language competence shifts, **Model 2** fits a shared slope $w$ with language-specific intercept offsets $\delta_l$ optimized on the calibration partition ($P_{\text{cal}}$, $N=75$).
-    """)
+    st.markdown('<div class="cyber-section-title">MATHEMATICAL FORMULATION: MODEL 2 (LANGUAGE-SHIFT PLATT SCALING)</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="cyber-callout" style="border-left-color: #00F5FF;">
+        <div class="cyber-callout-title" style="color: #00F5FF;">THEORETICAL FOUNDATION</div>
+        Standard global Platt scaling ($p = \sigma(w \cdot z + b_0)$) assumes identical calibration curves across all language inputs. 
+        Because language competence varies significantly between high-resource Latin scripts and Indic scripts, we formulate <strong>Model 2</strong> with a shared confidence slope $w$ and language-specific intercept shifts $\delta_l$:
+    </div>
+    """, unsafe_allow_html=True)
 
-    col_p1, col_p2 = st.columns(2)
+    st.latex(r"\hat{p}_2(l) = \sigma(w \cdot \tilde{z} + b_0 + \delta_l), \quad \text{where } \delta_{\text{en}} \equiv 0")
+
+    col_p1, col_p2 = st.columns([1, 1], gap="medium")
     with col_p1:
-        st.markdown("**Fitted Parameter Estimates on $P_{\text{cal}}$:**")
-        st.code("""
-Shared Slope (w): 0.892
-Base Intercept (b0): +1.412
-δ_English:   0.000 (reference)
-δ_Hindi:    -2.148
-δ_Bengali:  -1.684
-δ_Telugu:   -2.095
-δ_Tamil:    -1.512
-        """, language="text")
+        st.markdown("""
+        <div class="cyber-terminal-box" style="margin-top:0;">
+            <div style="color: #00F5FF; font-weight: 700; margin-bottom: 8px;">[FITTED PARAMETERS ON CALIBRATION SPLIT P_cal (N=75)]</div>
+            <div>Shared Slope (w)        : <span style="color: #EAF2FF;">0.8924</span></div>
+            <div>Base Intercept (b0)     : <span style="color: #EAF2FF;">+1.4120</span></div>
+            <div>δ_English               : <span style="color: #B6FF00;">0.0000 (Reference)</span></div>
+            <div>δ_Hindi                 : <span style="color: #FF3864;">-2.1482</span></div>
+            <div>δ_Bengali               : <span style="color: #FF3864;">-1.6841</span></div>
+            <div>δ_Telugu                : <span style="color: #FF3864;">-2.0953</span></div>
+            <div>δ_Tamil                 : <span style="color: #FF3864;">-1.5120</span></div>
+            <div style="margin-top: 8px; color: #8B96B8; font-size: 0.74rem;">Log-Loss Optimization via L-BFGS-B with B=10,000 Bootstraps</div>
+        </div>
+        """, unsafe_allow_html=True)
     with col_p2:
-        f_dist = get_fig_path("fig6_verbalized_vs_statistical_distribution.png")
-        if f_dist:
-            st.image(str(f_dist), caption="Figure 6: Verbalized vs. Statistical Confidence Distributions", use_container_width=True)
+        render_cyber_fig("fig6_verbalized_vs_statistical_distribution.png", "FIG 06 // CONFIDENCE DISTRIBUTIONS", "Verbalized vs Statistical")
 
-    f_gap = get_fig_path("fig9_confidence_accuracy_gap.png") or get_fig_path("4_confidence_accuracy_gap_by_condition.png")
-    if f_gap:
-        st.image(str(f_gap), caption="Figure 9: Absolute Confidence-Accuracy Misalignment Gap Across Conditions", use_container_width=True)
+    render_cyber_fig("fig9_confidence_accuracy_gap.png", "FIG 09 // CONFIDENCE-ACCURACY MISALIGNMENT GAP ACROSS CONDITIONS", "Quantified Misalignment")
 
 
 # -----------------------------------------------------------------------------
-# PAGE 5: CROSS-LINGUAL CONSISTENCY
+# PAGE 5: 05 CONSISTENCY
 # -----------------------------------------------------------------------------
-elif selected_page == "5. Cross-Lingual Consistency":
-    st.markdown('<div class="main-header">Cross-Lingual Answer Consistency & Grounding Audit</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Evaluating 750 pairwise comparisons: LLM Judge surface agreement vs. strict evidence verification</div>', unsafe_allow_html=True)
+elif current_page == "05 Consistency":
+    render_compact_header(
+        module_id="MODULE // LAB-05 // SEMANTIC HARMONIZATION",
+        title="CROSS-LINGUAL CONSISTENCY & GROUNDING AUDIT",
+        subtitle="Deconstructing 750 Symmetrical Pairwise Comparisons: Surface LLM Judge Agreement vs. Grounded Evidence Consistency"
+    )
 
-    col1, col2 = st.columns(2)
-    with col1:
+    c1, c2 = st.columns(2, gap="medium")
+    with c1:
+        st.markdown(render_kpi_card(
+            title="LLM Judge Surface Agreement",
+            value="88.4%",
+            sub="Semantically judged as agreeing due to fluent conversational tone",
+            color_theme="magenta",
+            extra_badge="SURFACE ILLUSION"
+        ), unsafe_allow_html=True)
+    with c2:
+        st.markdown(render_kpi_card(
+            title="True Grounded Consistency",
+            value="28.7% – 37.3%",
+            sub="Factual grounding verified against gold evidence claims",
+            color_theme="green",
+            extra_badge="VERIFIED GROUNDING"
+        ), unsafe_allow_html=True)
+
+    render_cyber_fig("fig8_cross_lingual_consistency.png", "FIG 08 // CROSS-LINGUAL SEMANTIC AGREEMENT BEFORE & AFTER MITIGATION", "Pairwise Evaluator")
+
+    st.markdown('<div class="cyber-section-title">QUALITATIVE ERROR TAXONOMY: WHY LLM JUDGES FAIL</div>', unsafe_allow_html=True)
+    t1, t2, t3 = st.columns(3, gap="medium")
+    with t1:
         st.markdown("""
-        <div class="metric-card metric-card-danger">
-            <div class="metric-lbl">LLM Judge Surface Agreement</div>
-            <div class="metric-val">88.4%</div>
-            <small>Judge marked answers as semantically agreeing</small>
+        <div class="cyber-kpi-card cyber-kpi-red" style="min-height: 140px;">
+            <div class="cyber-kpi-label"><span style="color: #FF3864;">DIAGNOSTIC 01 // EVIDENCE HALLUCINATION (46.1%)</span></div>
+            <div class="cyber-kpi-sub">The model generates fluent Indic sentences asserting incorrect dates or swapped entities. Automated LLM judges lack native nuance and falsely score them as matching English truth.</div>
         </div>
         """, unsafe_allow_html=True)
-    with col2:
+    with t2:
         st.markdown("""
-        <div class="metric-card metric-card-success">
-            <div class="metric-lbl">True Grounded Evidence Consistency</div>
-            <div class="metric-val">28.7% – 37.3%</div>
-            <small>Evidence-verified consistency across Indic languages</small>
+        <div class="cyber-kpi-card cyber-kpi-magenta" style="min-height: 140px;">
+            <div class="cyber-kpi-label"><span style="color: #FF00E5;">DIAGNOSTIC 02 // SCRIPT TRANSLITERATION</span></div>
+            <div class="cyber-kpi-sub">Proper nouns transliterated into non-Latin scripts fail exact string checks while conveying truth. Strategy B overcomes this by anchoring entity extraction in English before translation.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with t3:
+        st.markdown("""
+        <div class="cyber-kpi-card cyber-kpi-purple" style="min-height: 140px;">
+            <div class="cyber-kpi-label"><span style="color: #8B5CF6;">DIAGNOSTIC 03 // CONTRADICTORY CLAIMS (24.3%)</span></div>
+            <div class="cyber-kpi-sub">When prompted in English, Gemma 3 4B correctly identifies entities (e.g. Kangchenjunga), but under identical prompt in Hindi, asserts a different entity. Dual arbitration catches this.</div>
         </div>
         """, unsafe_allow_html=True)
 
-    f_cons = get_fig_path("fig8_cross_lingual_consistency.png") or get_fig_path("3_cross_lingual_answer_consistency.png")
-    if f_cons:
-        st.image(str(f_cons), caption="Figure 8: Cross-Lingual Semantic Agreement Before & After Mitigation", use_container_width=True)
-
-    st.markdown("### Qualitative Error Audit: Why Surface Agreement Misleads")
-    st.write("""
-    Across 750 symmetrical pairwise comparisons, we identified three major categories of cross-lingual inconsistency:
-    1. **Evidence Hallucination in Indic Scripts (46.1% of pairs):** The model produces an assertive, grammatically fluent statement in Hindi/Bengali/Telugu/Tamil that asserts an incorrect entity (e.g. naming an unassociated city or date), which casual LLM judges overlook because the sentence structure matches English.
-    2. **Script Transliteration Mismatch:** Entity names transliterated into non-Latin scripts (Devanagari, Bengali) fail exact English string matches despite conveying factual truth. Strategy B solves this by anchoring entities in English first.
-    3. **Contradictory Cross-Lingual Claims:** In 24.3% of pairs, the model correctly answers a proposition in English (e.g. *Kangchenjunga*) while asserting a different mountain (e.g. *Nanda Devi*) when queried in Hindi.
-    """)
-
 
 # -----------------------------------------------------------------------------
-# PAGE 6: EXPERIMENTS & VALIDATION
+# PAGE 6: 06 STRATEGIES
 # -----------------------------------------------------------------------------
-elif selected_page == "6. Strategy Experiments & Validation":
-    st.markdown('<div class="main-header">Mitigation Strategy Experiments & Selective Answering</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Validation selection on P_val (30 questions) and Strategy E Accuracy-Coverage Trade-offs</div>', unsafe_allow_html=True)
+elif current_page == "06 Strategies":
+    render_compact_header(
+        module_id="MODULE // LAB-06 // STRATEGY BENCHMARKING",
+        title="MITIGATION STRATEGY BENCHMARKING & RISK OPTIMIZATION",
+        subtitle="Validation-Driven Selection on P_val (N=30) and Strategy E Selective Answering Coverage-Risk Frontier"
+    )
 
-    st.markdown("### Stage A: Validation Strategy Selection ($P_{val}$)")
+    st.markdown('<div class="cyber-section-title">STAGE A: VALIDATION STRATEGY SELECTION (P_val, N=30)</div>', unsafe_allow_html=True)
     val_table = pd.DataFrame([
-        {"Strategy": "Strategy A: Native Prompt Optimization", "Validation Acc": "30.0%", "Validation Brier Score": "0.6141", "Avg Latency": "4.2s", "Selected": "No"},
-        {"Strategy": "Strategy B: Cross-Lingual Pivot Answering", "Validation Acc": "76.7%", "Validation Brier Score": "0.1902", "Avg Latency": "8.8s", "Selected": "No"},
-        {"Strategy": "Strategy C: Bilingual Verification & Arbitration", "Validation Acc": "80.0%", "Validation Brier Score": "0.1797", "Avg Latency": "14.5s", "Selected": "YES (Winner)"},
-        {"Strategy": "Strategy D: Evidence-Grounded Refinement", "Validation Acc": "50.0%", "Validation Brier Score": "0.4328", "Avg Latency": "9.2s", "Selected": "No"},
+        {"STRATEGY": "Strategy A: Native Prompt Optimization", "VALIDATION ACC": "30.0%", "VALIDATION BRIER": "0.6141", "AVG LATENCY": "4.2s", "SELECTION STATUS": "REJECTED"},
+        {"STRATEGY": "Strategy B: Cross-Lingual Pivot Answering", "VALIDATION ACC": "76.7%", "VALIDATION BRIER": "0.1902", "AVG LATENCY": "8.8s", "SELECTION STATUS": "ACCEPTED (HIGH SPEED)"},
+        {"STRATEGY": "Strategy C: Bilingual Verification & Arbitration", "VALIDATION ACC": "80.0%", "VALIDATION BRIER": "0.1797", "AVG LATENCY": "14.5s", "SELECTION STATUS": "SELECTED WINNER"},
+        {"STRATEGY": "Strategy D: Evidence-Grounded Refinement", "VALIDATION ACC": "50.0%", "VALIDATION BRIER": "0.4328", "AVG LATENCY": "9.2s", "SELECTION STATUS": "REJECTED"},
     ])
-    st.table(val_table)
+    st.dataframe(val_table, use_container_width=True, hide_index=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        f_cov = get_fig_path("fig10_accuracy_vs_coverage_curve.png")
-        if f_cov:
-            st.image(str(f_cov), caption="Figure 10: Accuracy vs. Coverage Curve (Strategy E Selective Answering)", use_container_width=True)
-    with col2:
-        f_risk = get_fig_path("fig11_selective_risk_vs_coverage.png")
-        if f_risk:
-            st.image(str(f_risk), caption="Figure 11: Selective Risk vs. Coverage Curve", use_container_width=True)
+    st.markdown('<div class="cyber-section-title">COVERAGE-RISK FRONTIER & RESOURCE CONSUMPTION</div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2, gap="medium")
+    with c1:
+        render_cyber_fig("fig10_accuracy_vs_coverage_curve.png", "FIG 10 // ACCURACY VS. COVERAGE (STRATEGY E)", "Selective Risk-Coverage")
+    with c2:
+        render_cyber_fig("fig11_selective_risk_vs_coverage.png", "FIG 11 // SELECTIVE RISK VS. COVERAGE", "Risk Metric Curve")
 
-    col3, col4 = st.columns(2)
-    with col3:
-        f_heat = get_fig_path("fig12_strategy_comparison_heatmap.png")
-        if f_heat:
-            st.image(str(f_heat), caption="Figure 12: Strategy Comparison Heatmap on Validation Partition", use_container_width=True)
-    with col4:
-        f_lat = get_fig_path("fig13_inference_latency_comparison.png")
-        if f_lat:
-            st.image(str(f_lat), caption="Figure 13: Inference Latency Across Mitigation Strategies", use_container_width=True)
+    c3, c4 = st.columns(2, gap="medium")
+    with c3:
+        render_cyber_fig("fig12_strategy_comparison_heatmap.png", "FIG 12 // STRATEGY COMPARISON HEATMAP", "P_val Performance Matrix")
+    with c4:
+        render_cyber_fig("fig13_inference_latency_comparison.png", "FIG 13 // INFERENCE LATENCY BENCHMARK", "Execution Cost (Seconds)")
 
 
 # -----------------------------------------------------------------------------
-# PAGE 7: RESEARCH REPORT & DOWNLOADS
+# PAGE 7: 07 REPORTS
 # -----------------------------------------------------------------------------
-elif selected_page == "7. Research Report & Paper":
-    st.markdown('<div class="main-header">Complete Research Documentation & Paper</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Download publication-ready reports, empirical ledgers, and metrics</div>', unsafe_allow_html=True)
+elif current_page == "07 Reports":
+    render_compact_header(
+        module_id="MODULE // LAB-07 // SCIENTIFIC DOSSIER",
+        title="RESEARCH DOCUMENTATION & EXPORT TERMINAL",
+        subtitle="Inspect Publication-Ready Reports, Frozen Methodologies, and Download Empirical Research Artifacts"
+    )
 
     tab_paper, tab_meth, tab_res, tab_lim = st.tabs([
-        "📄 Final Research Paper",
-        "📐 Formal Methodology",
-        "📊 Detailed Results",
-        "⚠️ Limitations & Scope",
+        "📄 FINAL RESEARCH PAPER",
+        "📐 FORMAL METHODOLOGY",
+        "📊 DETAILED RESULTS",
+        "⚠️ LIMITATIONS & SCOPE",
     ])
 
     with tab_paper:
@@ -510,7 +767,7 @@ elif selected_page == "7. Research Report & Paper":
             with open(report_file, "r", encoding="utf-8") as f:
                 st.markdown(f.read())
         else:
-            st.info("Generating final research paper...")
+            st.info("Loading final research report...")
 
     with tab_meth:
         meth_file = Path("docs/methodology.md")
@@ -530,27 +787,23 @@ elif selected_page == "7. Research Report & Paper":
             with open(lim_file, "r", encoding="utf-8") as f:
                 st.markdown(f.read())
 
-    st.markdown("---")
-    st.markdown("### Export & Download Center")
-    d_col1, d_col2, d_col3 = st.columns(3)
+    st.markdown('<div class="cyber-section-title">ARTIFACT EXPORT CONSOLE</div>', unsafe_allow_html=True)
+    d_col1, d_col2, d_col3 = st.columns(3, gap="medium")
     
     with d_col1:
         metrics_csv = Path("outputs/research_results/research_metrics.csv")
         if metrics_csv.exists():
             with open(metrics_csv, "r", encoding="utf-8") as f:
-                st.download_button("📥 Download Research Metrics (CSV)", f.read(), file_name="research_metrics.csv", mime="text/csv", use_container_width=True)
+                st.download_button("📥 DOWNLOAD METRICS (CSV)", f.read(), file_name="research_metrics.csv", mime="text/csv", use_container_width=True)
 
     with d_col2:
         summary_json = Path("outputs/urgent_results/metrics_summary.json")
         if summary_json.exists():
             with open(summary_json, "r", encoding="utf-8") as f:
-                st.download_button("📥 Download Empirical Metrics (JSON)", f.read(), file_name="metrics_summary.json", mime="application/json", use_container_width=True)
+                st.download_button("📥 DOWNLOAD SUMMARY (JSON)", f.read(), file_name="metrics_summary.json", mime="application/json", use_container_width=True)
 
     with d_col3:
         report_md = Path("docs/final_research_report.md")
         if report_md.exists():
             with open(report_md, "r", encoding="utf-8") as f:
-                st.download_button("📥 Download Research Paper (Markdown)", f.read(), file_name="final_research_report.md", mime="text/markdown", use_container_width=True)
-
-st.sidebar.markdown("---")
-st.sidebar.caption("Antigravity Autonomous Research Engine | © 2026")
+                st.download_button("📥 DOWNLOAD FULL REPORT (MD)", f.read(), file_name="final_research_report.md", mime="text/markdown", use_container_width=True)

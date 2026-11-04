@@ -1,0 +1,14 @@
+{
+  "name": "cross-lingual-calibration",
+  "version": "1.0.0",
+  "description": "Cross-Lingual Calibration Collapse & Mitigation Research Platform",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "lint": "npm --prefix frontend run lint",
+    "preview": "npm --prefix frontend run preview",
+    "install:frontend": "npm --prefix frontend install"
+  }
+}
